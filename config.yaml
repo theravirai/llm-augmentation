@@ -1,0 +1,28 @@
+# Default Configuration for LLM-Augmented Java Program Analysis
+
+defaults:
+  model: "gpt-oss-120b"
+  timeout_per_task: 300  # seconds
+  max_tool_iterations: 10
+  token_budget: 16000
+
+paths:
+  sootup_engine_dir: "sootup_engine"
+  datasets_dir: "datasets"
+  results_dir: "results"
+
+conditions:
+  A:
+    name: "Condition A (Source Only Baseline)"
+    description: "LLM evaluates bug report with source code context only, without static facts."
+  B:
+    name: "Condition B (Precomputed Static Injection)"
+    description: "LLM receives ahead-of-time precomputed SootUp static analysis summaries in prompt."
+  C:
+    name: "Condition C (On-Demand MCP Tools)"
+    description: "LLM agent dynamically invokes SootUp static analysis tools via MCP."
+
+sootup:
+  java_home: null  # Auto-detected if null
+  jvm_memory: "-Xmx4g"
+  default_callgraph_algorithm: "cha"  # cha, rta, or spark
