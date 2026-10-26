@@ -269,8 +269,9 @@ public class SootUpAnalyzer {
         if (scopeClass != null && !scopeClass.trim().isEmpty()) {
             view.getClass(factory.getClassType(scopeClass.trim())).ifPresent(classes::add);
         } else {
+            // Only scan application classes (from target/classes), skipping runtime JDK library classes
             view.getClasses()
-                .filter(c -> c instanceof JavaSootClass)
+                .filter(c -> c.isApplicationClass() && c instanceof JavaSootClass)
                 .map(c -> (JavaSootClass) c)
                 .forEach(classes::add);
         }
