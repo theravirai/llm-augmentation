@@ -1,4 +1,4 @@
-# Python
+# Python cache & build
 __pycache__/
 *.py[cod]
 *$py.class
@@ -44,5 +44,5 @@ classpath.txt
 .DS_Store
 
 # Results & Logs
-results/test_*/
+results/
 .env
