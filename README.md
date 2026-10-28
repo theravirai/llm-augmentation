@@ -1,4 +1,4 @@
-# LLM-Augmented Java Program Analysis & Fault Localization via SootUp
+# LLM-Augmented Java Program Analysis via SootUp Integration
 
 [![Java 17+](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.org/)
 [![Maven 3.9+](https://img.shields.io/badge/Maven-3.9%2B-C71A36.svg)](https://maven.apache.org/)
@@ -7,8 +7,6 @@
 [![MCP](https://img.shields.io/badge/MCP--green.svg)](https://modelcontextprotocol.io/)
 
 An automated empirical research framework for **LLM-Augmented Java Program Analysis and Fault Localization**, investigating whether augmenting Large Language Models with whole-program static analysis facts (via **SootUp 3.x** and the **Model Context Protocol**) overcomes non-local semantic reasoning blindspots across complex Java defects.
-
-Developed at the **Heinz Nixdorf Institute (SSE), University of Paderborn** and **Fraunhofer IEM** (Chair: Prof. Dr. Eric Bodden).
 
 ---
 
@@ -149,3 +147,19 @@ python -m llm_augmentation.cli tools hierarchy \
 * **RQ2 (Cost & Efficiency):** Tool Calls Count, Token Consumption (Prompt + Completion), Execution Latency (seconds), Compilation Feasibility Status.
 
 Reports are automatically generated in both machine-readable JSON (`*_eval.json`) and publication-ready Markdown tables (`*_report.md`).
+
+---
+
+## 7. Documentation Guides
+
+For comprehensive technical guides, see the [`docs/`](docs/README.md) directory:
+* [**Documentation Index**](docs/README.md)
+* [**01. Architecture & Execution Flow**](docs/01_architecture_and_flow.md)
+* [**02. Installation & Troubleshooting**](docs/02_installation_and_troubleshooting.md)
+* [**03. CLI Reference Manual**](docs/03_cli_reference.md)
+* [**04. Benchmark Datasets & Extension Guide**](docs/04_benchmark_datasets.md)
+* [**05. Running Experiments (Conditions A, B, C)**](docs/05_running_experiments.md)
+* [**06. Evaluation Metrics & Ground Truth Specification**](docs/06_evaluation_and_metrics.md)
+* [**07. SootUp Static Analysis Tools & MCP Bridge**](docs/07_sootup_and_mcp_bridge.md)
+* [**08. Output Reports & Result Interpretation**](docs/08_output_reports_and_interpretation.md)
+
