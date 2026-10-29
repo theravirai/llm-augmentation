@@ -31,8 +31,8 @@ class RepoManager:
 
     KNOWN_WORKSPACE_ROOTS = [
         Path("workspace"),
-        Path("/Volumes/BrainStorm/Github/SootUp-Store/thesis-experiments"),
         Path("/Volumes/BrainStorm/Github/SootUp-Store/swebench-java-evaluation/workspace"),
+        Path("/Volumes/BrainStorm/Github/SootUp-Store/thesis-experiments"),
     ]
 
     def __init__(self, workspace_roots: Optional[List[Path | str]] = None):

@@ -18,7 +18,7 @@ The framework cleanly separates the cognitive reasoning agent from the formal st
 graph TB
     subgraph Benchmark_Harness["1. Benchmark Harness & Evaluator"]
         CLI["Unified CLI (python -m llm_augmentation.cli)"]
-        DatasetLoader["Task Loader (43 SWE-Bench Java Tasks)"]
+        DatasetLoader["Task Loader (SWE-Bench Java Tasks)"]
         RepoManager["Repo & Bytecode Manager (base_commit)"]
         EvalEngine["Automated Evaluator (Gold Patch Ground Truth)"]
         Reporter["Scientific Reporter (RQ1 & RQ2 Tables)"]
