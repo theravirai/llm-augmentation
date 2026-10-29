@@ -69,7 +69,7 @@ class LLMGateway:
                             if line and not line.startswith("#") and "=" in line:
                                 k, v = line.split("=", 1)
                                 k = k.replace("export ", "").strip()
-                                v = v.strip().strip("'\"")
+                                v = v.split("#")[0].strip().strip("'\"")
                                 if k not in os.environ:
                                     os.environ[k] = v
                 except Exception:
@@ -83,6 +83,8 @@ class LLMGateway:
         temperature: float = 0.0
     ) -> LLMResponse:
         model_name = model or self.default_model
+        if "ai-gateway.uni-paderborn.de" in self.base_url and model_name == "gpt-oss-120b":
+            model_name = "kiconnect.openai-gpt-oss-120b"
 
         # Ensure endpoint has standard /v1/chat/completions or /chat/completions
         endpoint = f"{self.base_url}/chat/completions"
@@ -119,6 +121,8 @@ class LLMGateway:
             msg = choice.get("message", {})
 
             content = msg.get("content")
+            if not content and "reasoning_content" in msg:
+                content = msg.get("reasoning_content")
             tool_calls = []
 
             if "tool_calls" in msg and msg["tool_calls"]:
