@@ -42,6 +42,14 @@ public class SootUpMcpServer {
                 } catch (Exception e) {
                     System.err.println("[SootUp-MCP] Error processing message: " + e.getMessage());
                     e.printStackTrace(System.err);
+                    JsonObject errorResp = new JsonObject();
+                    errorResp.addProperty("jsonrpc", "2.0");
+                    JsonObject errObj = new JsonObject();
+                    errObj.addProperty("code", -32603);
+                    errObj.addProperty("message", "Internal error: " + e.getMessage());
+                    errorResp.add("error", errObj);
+                    System.out.println(gson.toJson(errorResp));
+                    System.out.flush();
                 }
             }
         } catch (Exception e) {
@@ -177,13 +185,26 @@ public class SootUpMcpServer {
         return result;
     }
 
-    private static JsonObject handleToolCall(JsonObject params) {
-        String toolName = params.get("name").getAsString();
-        JsonObject args = params.has("arguments") ? params.getAsJsonObject("arguments") : new JsonObject();
+    private static String getArg(JsonObject obj, String key, String defaultVal) {
+        if (obj != null && obj.has(key) && !obj.get(key).isJsonNull()) {
+            return obj.get(key).getAsString().trim();
+        }
+        return defaultVal;
+    }
 
+    private static JsonObject handleToolCall(JsonObject params) {
+        String toolName = getArg(params, "name", "").trim();
+        if (toolName.startsWith("soothup_")) {
+            toolName = toolName.replace("soothup_", "sootup_");
+        }
+        JsonObject args = params.has("arguments") && params.get("arguments").isJsonObject()
+                ? params.getAsJsonObject("arguments")
+                : new JsonObject();
+
+        // Prefer defaultTargetDir if set by host, else fallback to tool argument
         String targetDir = defaultTargetDir;
-        if (args.has("target_dir") && !args.get("target_dir").getAsString().trim().isEmpty()) {
-            targetDir = args.get("target_dir").getAsString().trim();
+        if (targetDir.isEmpty() || targetDir.isBlank()) {
+            targetDir = getArg(args, "target_dir", "");
         }
 
         if (targetDir.isEmpty()) {
@@ -196,34 +217,43 @@ public class SootUpMcpServer {
             String outputText;
             switch (toolName) {
                 case "sootup_hierarchy": {
-                    String targetClass = args.get("target_class").getAsString();
+                    String targetClass = getArg(args, "target_class", "");
+                    if (targetClass.isEmpty()) return makeToolError("target_class parameter is required");
                     outputText = analyzer.getHierarchy(targetClass);
                     break;
                 }
                 case "sootup_inspect_method": {
-                    String targetClass = args.get("target_class").getAsString();
-                    String targetMethod = args.get("target_method").getAsString();
+                    String targetClass = getArg(args, "target_class", "");
+                    String targetMethod = getArg(args, "target_method", "");
+                    if (targetClass.isEmpty()) return makeToolError("target_class parameter is required");
+                    if (targetMethod.isEmpty()) return makeToolError("target_method parameter is required");
                     outputText = analyzer.inspectMethod(targetClass, targetMethod);
                     break;
                 }
                 case "sootup_find_allocations": {
-                    String targetClass = args.get("target_class").getAsString();
-                    String scopeClass = args.has("scope_class") ? args.get("scope_class").getAsString() : null;
+                    String targetClass = getArg(args, "target_class", "");
+                    if (targetClass.isEmpty()) return makeToolError("target_class parameter is required");
+                    String scopeClass = getArg(args, "scope_class", null);
                     outputText = analyzer.findAllocations(targetClass, scopeClass);
                     break;
                 }
                 case "sootup_find_invocations": {
-                    String targetClass = args.get("target_class").getAsString();
-                    String targetMethod = args.get("target_method").getAsString();
-                    String scopeClass = args.has("scope_class") ? args.get("scope_class").getAsString() : null;
+                    String targetClass = getArg(args, "target_class", "");
+                    String targetMethod = getArg(args, "target_method", "");
+                    if (targetClass.isEmpty()) return makeToolError("target_class parameter is required");
+                    if (targetMethod.isEmpty()) return makeToolError("target_method parameter is required");
+                    String scopeClass = getArg(args, "scope_class", null);
                     outputText = analyzer.findInvocations(targetClass, targetMethod, scopeClass);
                     break;
                 }
                 case "sootup_callgraph": {
-                    String algorithm = args.get("algorithm").getAsString();
-                    String entryClass = args.get("entry_class").getAsString();
-                    String entryMethod = args.get("entry_method").getAsString();
-                    String returnType = args.get("return_type").getAsString();
+                    String algorithm = getArg(args, "algorithm", "cha");
+                    String entryClass = getArg(args, "entry_class", "");
+                    String entryMethod = getArg(args, "entry_method", "");
+                    String returnType = getArg(args, "return_type", "void");
+                    if (entryClass.isEmpty() || entryMethod.isEmpty()) {
+                        return makeToolError("entry_class and entry_method parameters are required");
+                    }
                     List<String> paramTypes = new ArrayList<>();
                     if (args.has("param_types") && args.get("param_types").isJsonArray()) {
                         for (JsonElement el : args.getAsJsonArray("param_types")) {
