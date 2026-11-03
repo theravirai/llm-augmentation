@@ -64,32 +64,55 @@ class BaseAgent(ABC):
     @staticmethod
     def extract_json_diagnosis(text: str) -> Dict[str, Any]:
         """
-        Extracts structured diagnosis JSON from markdown code blocks or plain text.
+        Extracts structured diagnosis JSON from markdown code blocks or plain text
+        with multi-stage resilient parsing (comments, trailing commas, regex fallbacks).
         """
         if not text:
             return {}
 
-        # Look for ```json ... ``` block
-        json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+        # 1. Clean comments and trailing commas
+        cleaned = re.sub(r"//.*$", "", text, flags=re.MULTILINE)
+        cleaned = re.sub(r",\s*([\]}])", r"\1", cleaned)
+
+        # 2. Look for ```json ... ``` block
+        json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", cleaned, re.DOTALL)
         if json_match:
             try:
                 return json.loads(json_match.group(1))
-            except json.JSONDecodeError:
+            except Exception:
                 pass
 
-        # Look for outermost { ... }
-        brace_match = re.search(r"(\{.*\})", text, re.DOTALL)
+        # 3. Look for outermost { ... }
+        brace_match = re.search(r"(\{.*\})", cleaned, re.DOTALL)
         if brace_match:
             try:
                 return json.loads(brace_match.group(1))
-            except json.JSONDecodeError:
+            except Exception:
                 pass
 
-        # Fallback heuristic parsing if JSON was incomplete
-        return {
+        # 4. Resilient regex extraction fallback
+        diagnosis: Dict[str, Any] = {
             "localized_files": [],
             "localized_classes": [],
             "localized_methods": [],
             "localized_lines": {},
             "root_cause_explanation": text.strip()
         }
+
+        files_m = re.search(r'"(?:localized_files|files)"\s*:\s*\[(.*?)\]', text, re.DOTALL)
+        if files_m:
+            diagnosis["localized_files"] = [f.strip().strip("'\"") for f in re.findall(r'["\']([^"\']+)["\']', files_m.group(1))]
+
+        classes_m = re.search(r'"(?:localized_classes|classes)"\s*:\s*\[(.*?)\]', text, re.DOTALL)
+        if classes_m:
+            diagnosis["localized_classes"] = [c.strip().strip("'\"") for c in re.findall(r'["\']([^"\']+)["\']', classes_m.group(1))]
+
+        methods_m = re.search(r'"(?:localized_methods|methods)"\s*:\s*\[(.*?)\]', text, re.DOTALL)
+        if methods_m:
+            diagnosis["localized_methods"] = [m.strip().strip("'\"") for m in re.findall(r'["\']([^"\']+)["\']', methods_m.group(1))]
+
+        expl_m = re.search(r'"root_cause_explanation"\s*:\s*"([^"]+)"', text, re.DOTALL)
+        if expl_m:
+            diagnosis["root_cause_explanation"] = expl_m.group(1)
+
+        return diagnosis
