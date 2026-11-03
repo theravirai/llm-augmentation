@@ -58,14 +58,41 @@ public class SootUpAnalyzer {
     }
 
     /**
+     * Resolves a JavaClassType, supporting both fully-qualified names and simple class names.
+     */
+    public JavaClassType resolveClassType(String targetClassName) {
+        if (targetClassName == null || targetClassName.trim().isEmpty()) {
+            return factory.getClassType("");
+        }
+        String trimmed = targetClassName.trim();
+        JavaClassType classType = factory.getClassType(trimmed);
+        if (view.getClass(classType).isPresent()) {
+            return classType;
+        }
+
+        String simpleName = trimmed.contains(".")
+                ? trimmed.substring(trimmed.lastIndexOf('.') + 1)
+                : trimmed;
+
+        Optional<JavaSootClass> matched = view.getClasses()
+                .filter(c -> c instanceof JavaSootClass)
+                .map(c -> (JavaSootClass) c)
+                .filter(c -> c.getName().equals(simpleName) || c.getName().endsWith("." + simpleName))
+                .findFirst();
+
+        return matched.map(c -> factory.getClassType(c.getName())).orElse(classType);
+    }
+
+    /**
      * Primitive 1: Class Hierarchy
      * Finds superclasses, direct/indirect subclasses, and implemented interfaces.
      */
     public String getHierarchy(String targetClassName) {
         StringBuilder sb = new StringBuilder();
-        JavaClassType classType = factory.getClassType(targetClassName);
+        JavaClassType classType = resolveClassType(targetClassName);
+        String targetName = classType.getFullyQualifiedName();
         sb.append("=== CLASS HIERARCHY FACT ===\n");
-        sb.append("Target: ").append(targetClassName).append("\n");
+        sb.append("Target: ").append(targetName).append("\n");
 
         if (!view.getClass(classType).isPresent()) {
             sb.append("Status: Class not found in view.\n");
@@ -76,8 +103,48 @@ public class SootUpAnalyzer {
         sb.append("\nSuperclasses:\n");
         th.superClassesOf(classType).forEach(sc -> sb.append(" - ").append(sc.getFullyQualifiedName()).append("\n"));
 
+        List<ClassType> subclasses = new ArrayList<>();
+        th.subclassesOf(classType).forEach(subclasses::add);
+
         sb.append("\nSubclasses:\n");
-        th.subclassesOf(classType).forEach(sc -> sb.append(" - ").append(sc.getFullyQualifiedName()).append("\n"));
+        if (subclasses.isEmpty()) {
+            sb.append(" (None)\n");
+            // If class name ends with 's', e.g. TypeAdapters, auto-resolve to matching base class TypeAdapter
+            if (targetClassName.endsWith("s")) {
+                String simpleName = targetClassName.substring(targetClassName.lastIndexOf('.') + 1);
+                String nonPluralSimple = simpleName.substring(0, simpleName.length() - 1);
+                Optional<JavaSootClass> appClassOpt = view.getClasses()
+                    .filter(c -> c instanceof JavaSootClass)
+                    .map(c -> (JavaSootClass) c)
+                    .filter(c -> c.getName().endsWith("." + nonPluralSimple) || c.getName().equals(nonPluralSimple))
+                    .findFirst();
+                if (appClassOpt.isPresent()) {
+                    JavaSootClass appClass = appClassOpt.get();
+                    sb.append("\nNOTE: '").append(targetClassName).append("' is a utility container with no direct subclasses.")
+                      .append("\nSubclasses of base class '").append(appClass.getName()).append("':\n");
+                    JavaClassType baseType = factory.getClassType(appClass.getName());
+                    th.subclassesOf(baseType).forEach(sc -> {
+                        String name = sc.getFullyQualifiedName();
+                        if (name.contains("$")) {
+                            String outer = name.substring(0, name.indexOf('$'));
+                            sb.append(" - ").append(name).append(" (declared inside ").append(outer).append(")\n");
+                        } else {
+                            sb.append(" - ").append(name).append("\n");
+                        }
+                    });
+                }
+            }
+        } else {
+            subclasses.forEach(sc -> {
+                String name = sc.getFullyQualifiedName();
+                if (name.contains("$")) {
+                    String outer = name.substring(0, name.indexOf('$'));
+                    sb.append(" - ").append(name).append(" (declared inside ").append(outer).append(")\n");
+                } else {
+                    sb.append(" - ").append(name).append("\n");
+                }
+            });
+        }
 
         sb.append("\nImplemented Interfaces:\n");
         th.implementedInterfacesOf(classType).forEach(sc -> sb.append(" - ").append(sc.getFullyQualifiedName()).append("\n"));
@@ -91,7 +158,7 @@ public class SootUpAnalyzer {
      */
     public String inspectMethod(String targetClass, String targetMethod) {
         StringBuilder sb = new StringBuilder();
-        JavaClassType classType = factory.getClassType(targetClass);
+        JavaClassType classType = resolveClassType(targetClass);
         Optional<JavaSootClass> scOpt = view.getClass(classType);
 
         if (!scOpt.isPresent()) {
@@ -101,7 +168,31 @@ public class SootUpAnalyzer {
         JavaSootClass sc = scOpt.get();
         Set<? extends SootMethod> methods = sc.getMethodsByName(targetMethod);
         if (methods.isEmpty()) {
-            return "Error: Method " + targetMethod + " not found in " + targetClass;
+            StringBuilder err = new StringBuilder();
+            err.append("Error: Method '").append(targetMethod).append("' not found in ").append(targetClass).append(".\n");
+
+            // 1. Check if targetMethod is actually a declared field
+            Optional<sootup.java.core.JavaSootField> fieldOpt = sc.getField(targetMethod);
+            if (fieldOpt.isPresent()) {
+                sootup.java.core.JavaSootField f = fieldOpt.get();
+                err.append("NOTE: '").append(targetMethod).append("' is a declared FIELD of type: ")
+                   .append(f.getType()).append(".\n")
+                   .append("To inspect this type, query the class hierarchy of its type: '")
+                   .append(f.getType()).append("'.\n");
+            }
+
+            // 2. List available declared methods
+            List<String> methodNames = sc.getMethods().stream()
+                    .map(SootMethod::getName)
+                    .filter(m -> !m.startsWith("<"))
+                    .distinct()
+                    .sorted()
+                    .limit(25)
+                    .collect(java.util.stream.Collectors.toList());
+            if (!methodNames.isEmpty()) {
+                err.append("Available methods in ").append(sc.getName()).append(": ").append(methodNames);
+            }
+            return err.toString();
         }
 
         for (SootMethod method : methods) {
@@ -157,10 +248,12 @@ public class SootUpAnalyzer {
                         if (assign.getRightOp() instanceof JNewExpr) {
                             JNewExpr newExpr = (JNewExpr) assign.getRightOp();
                             String typeStr = newExpr.getType().toString();
-                            boolean match = typeStr.equals(targetClass);
+                            boolean match = typeStr.equals(targetClass) || typeStr.endsWith("." + targetClass);
                             if (!match && newExpr.getType() instanceof ClassType) {
-                                match = ((ClassType) newExpr.getType()).getClassName().equals(targetClass)
-                                     || ((ClassType) newExpr.getType()).getFullyQualifiedName().equals(targetClass);
+                                ClassType ct = (ClassType) newExpr.getType();
+                                match = ct.getClassName().equals(targetClass)
+                                     || ct.getFullyQualifiedName().equals(targetClass)
+                                     || ct.getFullyQualifiedName().endsWith("." + targetClass);
                             }
                             if (match) {
                                 matchCount++;
