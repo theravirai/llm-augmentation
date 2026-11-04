@@ -136,13 +136,14 @@ def get_agent(condition: str, model: str, config: Dict):
     cond = condition.upper()
     engine_dir = Path(__file__).resolve().parent.parent / config["paths"]["sootup_engine_dir"]
     gateway = LLMGateway(default_model=model)
+    max_iter = config.get("defaults", {}).get("max_tool_iterations", 5)
 
     if cond == "A":
-        return ConditionAAgent(model=model, gateway=gateway)
+        return ConditionAAgent(model=model, gateway=gateway, max_iterations=max_iter)
     elif cond == "B":
-        return ConditionBAgent(model=model, gateway=gateway, sootup_engine_dir=engine_dir)
+        return ConditionBAgent(model=model, gateway=gateway, sootup_engine_dir=engine_dir, max_iterations=max_iter)
     elif cond == "C":
-        return ConditionCAgent(model=model, gateway=gateway, sootup_engine_dir=engine_dir)
+        return ConditionCAgent(model=model, gateway=gateway, sootup_engine_dir=engine_dir, max_iterations=max_iter)
     else:
         raise ValueError(f"Unknown condition: {condition}")
 
@@ -181,6 +182,9 @@ def handle_run(args, config):
     with open(md_file, "w", encoding="utf-8") as f:
         f.write(md_report)
     JsonLogger.save_task_report(report, json_file)
+
+    if res.raw_output:
+        print(f"\n--- [Model Diagnosis Output] ---\n{res.raw_output.strip()}\n--------------------------------\n")
 
     print(md_report)
     print(f"\n[+] Results saved to: {md_file} and {json_file}")
@@ -260,6 +264,12 @@ def handle_compare(args, config):
         res = agent.run(task, repo_context)
         rep = Evaluator.evaluate_task(res, task, repo_context)
         reports[cond] = rep
+        JsonLogger.save_task_report(rep, output_dir / f"{task.instance_id}_cond_{cond}_eval.json")
+        md_task_rep = MarkdownReporter.generate_task_report(rep)
+        with open(output_dir / f"{task.instance_id}_cond_{cond}_report.md", "w", encoding="utf-8") as f:
+            f.write(md_task_rep)
+        if res.raw_output:
+            print(f"\n--- [Condition {cond} Diagnosis Output] ---\n{res.raw_output.strip()}\n----------------------------------------\n")
 
     comp_table = MarkdownReporter.generate_comparison_table(reports)
     comp_file = output_dir / f"{task.instance_id}_condition_comparison.md"

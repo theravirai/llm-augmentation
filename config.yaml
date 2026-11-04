@@ -3,7 +3,7 @@
 defaults:
   model: "gpt-oss-120b"
   timeout_per_task: 300  # seconds
-  max_tool_iterations: 10
+  max_tool_iterations: 8
   token_budget: 16000
 
 paths:
