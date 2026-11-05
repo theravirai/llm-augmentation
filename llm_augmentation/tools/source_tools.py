@@ -47,6 +47,41 @@ SOURCE_TOOLS: List[Dict[str, Any]] = [
             },
             "required": ["file_path"]
         }
+    },
+    {
+        "name": "find_files",
+        "description": "Finds files matching a glob pattern across the repository (e.g. '*TypeAdapter*.java', '*Gson*.java'). Helps locate files by name without knowing the full path.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_pattern": {
+                    "type": "string",
+                    "description": "Glob pattern to match file names (e.g. '*TypeAdapter*.java')"
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of file paths to return (default: 30)"
+                }
+            },
+            "required": ["file_pattern"]
+        }
+    },
+    {
+        "name": "list_directory",
+        "description": "Lists files and subdirectories in a specific repository directory, or root if path is empty. Helps navigate packages and discover project layout.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Relative directory path (e.g. 'gson/src/main/java' or empty for repository root)"
+                },
+                "max_depth": {
+                    "type": "integer",
+                    "description": "Maximum directory traversal depth (default: 2)"
+                }
+            }
+        }
     }
 ]
 
@@ -55,8 +90,13 @@ class SourceToolsExecutor:
     Executes repository source navigation tools directly against the target codebase on disk.
     """
 
+    TOOL_NAMES = {"search_source_code", "read_source_file", "find_files", "list_directory"}
+
     @classmethod
     def execute(cls, tool_name: str, arguments: Dict[str, Any], repo_path: Path) -> str:
+        if not repo_path or not repo_path.exists():
+            return f"Error: Repository path '{repo_path}' does not exist on disk."
+
         if tool_name == "search_source_code":
             query = arguments.get("query", "")
             file_pattern = arguments.get("file_pattern", "*.java")
@@ -68,6 +108,16 @@ class SourceToolsExecutor:
             start_line = int(arguments.get("start_line", 1))
             end_line = int(arguments.get("end_line", 100))
             return cls.read_source_file(file_path, repo_path, start_line=start_line, end_line=end_line)
+
+        elif tool_name == "find_files":
+            file_pattern = arguments.get("file_pattern", "*.java")
+            max_results = int(arguments.get("max_results", 30))
+            return cls.find_files(file_pattern, repo_path, max_results=max_results)
+
+        elif tool_name == "list_directory":
+            path_str = arguments.get("path", "")
+            max_depth = int(arguments.get("max_depth", 2))
+            return cls.list_directory(path_str, repo_path, max_depth=max_depth)
 
         return f"Unknown source tool: {tool_name}"
 
@@ -177,3 +227,92 @@ class SourceToolsExecutor:
             output.append(f"{line_no:4d} | {line_content}")
 
         return "\n".join(output)
+
+    @classmethod
+    def find_files(
+        cls,
+        file_pattern: str,
+        repo_path: Path,
+        max_results: int = 30
+    ) -> str:
+        if not file_pattern or not file_pattern.strip():
+            return "Error: file_pattern parameter is required."
+
+        if not repo_path or not repo_path.exists():
+            return f"Error: Repository path '{repo_path}' does not exist on disk."
+
+        matches: List[str] = []
+        for path in repo_path.rglob(file_pattern):
+            if any(part.startswith(".") or part in ["target", "build", ".git", "node_modules"] for part in path.parts):
+                continue
+            try:
+                rel = str(path.relative_to(repo_path))
+                matches.append(rel)
+                if len(matches) >= max_results:
+                    break
+            except Exception:
+                continue
+
+        if not matches:
+            return f"No files matching '{file_pattern}' found in {repo_path.name}."
+
+        header = f"=== Found {len(matches)} files matching '{file_pattern}' in {repo_path.name} ===\n"
+        return header + "\n".join(f"- {m}" for m in matches)
+
+    @classmethod
+    def list_directory(
+        cls,
+        path_str: str,
+        repo_path: Path,
+        max_depth: int = 2
+    ) -> str:
+        if not repo_path or not repo_path.exists():
+            return f"Error: Repository path '{repo_path}' does not exist on disk."
+
+        target_dir = (repo_path / path_str.strip()).resolve() if path_str and path_str.strip() else repo_path.resolve()
+
+        # Guard against traversal outside repo
+        try:
+            target_dir.relative_to(repo_path.resolve())
+        except ValueError:
+            return f"Error: Path '{path_str}' is outside repository root."
+
+        if not target_dir.exists() or not target_dir.is_dir():
+            return f"Error: Directory '{path_str}' does not exist in repository {repo_path.name}."
+
+        lines: List[str] = []
+        rel_root = target_dir.relative_to(repo_path)
+        rel_root_str = str(rel_root) if str(rel_root) != "." else "/"
+
+        def _traverse(current_dir: Path, current_depth: int):
+            if current_depth > max_depth:
+                return
+            try:
+                entries = sorted(current_dir.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
+            except Exception:
+                return
+
+            for entry in entries:
+                if entry.name.startswith(".") or entry.name in ["target", "build", ".git", "node_modules"]:
+                    continue
+                rel_entry = entry.relative_to(repo_path)
+                indent = "  " * (current_depth - 1)
+                if entry.is_dir():
+                    lines.append(f"{indent}[DIR]  {rel_entry}/")
+                    _traverse(entry, current_depth + 1)
+                elif entry.is_file():
+                    lines.append(f"{indent}[FILE] {rel_entry}")
+
+        _traverse(target_dir, 1)
+
+        if not lines:
+            return f"=== Directory: {rel_root_str} (Empty or all entries ignored) ==="
+
+        max_lines = 100
+        if len(lines) > max_lines:
+            truncated_count = len(lines) - max_lines
+            lines = lines[:max_lines]
+            lines.append(f"... ({truncated_count} more entries truncated)")
+
+        header = f"=== Directory Listing: {rel_root_str} (max depth: {max_depth}) ===\n"
+        return header + "\n".join(lines)
