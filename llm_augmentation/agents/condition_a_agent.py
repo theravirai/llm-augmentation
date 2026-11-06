@@ -19,7 +19,9 @@ class ConditionAAgent(BaseAgent):
     SYSTEM_PROMPT = """You are an expert Java program analysis and defect localization system.
 You are tasked with identifying the exact root-cause files, classes, methods, and line ranges for the bug described below.
 
-You have access to repository source code inspection tools:
+You have access to repository source code inspection and navigation tools:
+- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').
+- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).
 - search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.
 - read_source_file: Reads line ranges from Java source files in the repository.
 
@@ -63,7 +65,7 @@ Your final response MUST conclude with a JSON block in the following exact forma
 
 ### Task Instructions:
 Analyze the Java source code for the reported issue above.
-Use the source code inspection tools (search_source_code, read_source_file) to explore and inspect the relevant classes and methods.
+Use the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to explore and inspect the relevant classes and methods.
 Determine the exact root-cause bug locations across the repository.
 Remember that bugs in object-oriented Java may span multiple files and classes.
 Produce your localization diagnosis in the required JSON format.

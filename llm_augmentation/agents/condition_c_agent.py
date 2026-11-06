@@ -19,21 +19,28 @@ class ConditionCAgent(BaseAgent):
     validate hypotheses and uncover non-local defects.
     """
 
-    SYSTEM_PROMPT = """You are an autonomous Java program analysis agent equipped with the SootUp static analysis tool suite.
+    SYSTEM_PROMPT = """You are an autonomous Java program analysis agent equipped with repository navigation tools and the SootUp static analysis tool suite.
 Your goal is to pinpoint the exact root-cause bug locations across the Java repository for the issue described below.
 
-When analyzing the bug, you MUST use the SootUp MCP static analysis tools. You are free to choose any of the available SootUp tools based on the issue/task:
-- sootup_hierarchy: Discover superclasses, subclasses, and anonymous inner classes (e.g. TypeAdapter implementations like Gson$1).
-- sootup_inspect_method: Disassemble method bodies into Jimple IR with line numbers.
-- sootup_find_allocations: Find where objects or adapters are instantiated (JNewExpr) to pinpoint factory methods across the repository.
-- sootup_find_invocations: Find caller sites for a specific method across classes.
-- sootup_callgraph: Construct CHA, RTA, or SPARK interprocedural call graphs.
-- read_source_file: Reads line ranges from Java source files in the repository.
+You have access to two complementary tool suites:
+
+1. Repository Source Navigation Tools:
+- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').
+- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).
+- search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.
+- read_source_file: Reads exact line ranges from Java source files.
+
+2. SootUp Static Analysis Tools (Bytecode Analysis):
+- sootup_hierarchy: Discovers superclasses, subclasses, and anonymous inner classes (e.g. TypeAdapter implementations like Gson$1).
+- sootup_inspect_method: Disassembles method bodies into Jimple IR with line numbers.
+- sootup_find_allocations: Scans Jimple bodies for JNewExpr to pinpoint factory creation and instantiation sites across the repository.
+- sootup_find_invocations: Traces cross-module call sites for a method.
+- sootup_callgraph: Builds interprocedural call graphs using CHA, RTA, or SPARK.
 
 Investigate systematically:
-1. Examine the problem description and identify key candidate types, classes, or interfaces.
+1. Examine the problem description. If candidate classes or paths are not obvious, use find_files, list_directory, or search_source_code to locate them.
 2. In Java object-oriented defect localization, bugs frequently span multiple non-local files across inheritance, polymorphic wrappers, and factories. You MUST invoke the relevant SootUp MCP tools (such as sootup_hierarchy to explore subclasses or sootup_find_allocations to locate instantiation sites) to uncover all affected locations.
-3. Use read_source_file to inspect the source lines for the classes discovered by SootUp.
+3. Use read_source_file to inspect the source lines for the candidate files.
 4. Conclude with your structured diagnosis JSON block:
 
 ```json
@@ -60,8 +67,7 @@ Investigate systematically:
         self.gateway = gateway or LLMGateway(default_model=model)
         self.sootup_engine_dir = Path(sootup_engine_dir) if sootup_engine_dir else Path(__file__).resolve().parent.parent.parent / "sootup_engine"
         self.max_iterations = max_iterations
-        read_tool = [t for t in SOURCE_TOOLS if t["name"] == "read_source_file"]
-        self.tools = SOOTUP_TOOLS + read_tool
+        self.tools = SOOTUP_TOOLS + SOURCE_TOOLS
 
     def run(self, task: Task, repo_context: RepoContext) -> LocalizationResult:
         start_time = time.time()
@@ -141,7 +147,7 @@ Produce your localization diagnosis in the required JSON format.
                         call_args = dict(tc.arguments)
                         tool_name = tc.name.replace("soothup_", "sootup_").strip()
 
-                        if tool_name in ["search_source_code", "read_source_file"]:
+                        if tool_name in SourceToolsExecutor.TOOL_NAMES:
                             print(f"  -> [Condition C] Executing source tool '{tool_name}' with args {call_args}...", flush=True)
                             try:
                                 tool_result = SourceToolsExecutor.execute(tool_name, call_args, repo_context.repo_path)
