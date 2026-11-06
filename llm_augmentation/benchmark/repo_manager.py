@@ -81,13 +81,34 @@ class RepoManager:
         """
         repo_dir = self.find_repo_dir(task.repo)
         if not repo_dir:
-            return RepoContext(
-                repo_path=Path("."),
-                task_id=task.instance_id,
-                base_commit=task.base_commit,
-                is_compilable=False,
-                compile_error=f"Repository for '{task.repo}' not found in known workspace paths."
-            )
+            # Attempt to auto-clone into local workspace directory
+            workspace_dir = Path("workspace").resolve()
+            workspace_dir.mkdir(parents=True, exist_ok=True)
+            candidate_clone_dir = workspace_dir / task.repo.split("/")[-1]
+
+            if not candidate_clone_dir.exists():
+                print(f"[*] Repository for '{task.repo}' not found in known workspace paths. Attempting clone from https://github.com/{task.repo}.git...", flush=True)
+                try:
+                    subprocess.run(
+                        ["git", "clone", f"https://github.com/{task.repo}.git", str(candidate_clone_dir)],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                        timeout=300
+                    )
+                    repo_dir = candidate_clone_dir
+                    if workspace_dir not in self.workspace_roots:
+                        self.workspace_roots.insert(0, workspace_dir)
+                except Exception as e:
+                    return RepoContext(
+                        repo_path=candidate_clone_dir,
+                        task_id=task.instance_id,
+                        base_commit=task.base_commit,
+                        is_compilable=False,
+                        compile_error=f"Repository for '{task.repo}' not found and git clone failed: {e}"
+                    )
+            else:
+                repo_dir = candidate_clone_dir
 
         context = RepoContext(
             repo_path=repo_dir,
