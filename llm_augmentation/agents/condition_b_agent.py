@@ -1,12 +1,12 @@
 import json
 import re
+import subprocess
 import time
 from typing import Any, Dict, List, Optional, Set
 from pathlib import Path
 
 from llm_augmentation.benchmark.task import Task
 from llm_augmentation.benchmark.repo_manager import RepoContext
-from llm_augmentation.mcp.client import McpClient
 from llm_augmentation.tools.source_tools import SOURCE_TOOLS, SourceToolsExecutor
 from .base_agent import BaseAgent, LocalizationResult
 from .llm_gateway import LLMGateway
@@ -21,7 +21,9 @@ class ConditionBAgent(BaseAgent):
     SYSTEM_PROMPT = """You are an expert Java program analysis and defect localization system.
 You are provided with a real-world bug description AND deterministic static analysis facts extracted from the compiled Java bytecode using the SootUp framework.
 
-You have access to repository source code inspection tools:
+You have access to repository source code inspection and navigation tools:
+- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').
+- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).
 - search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.
 - read_source_file: Reads line ranges from Java source files in the repository.
 
@@ -74,7 +76,7 @@ Your final response MUST conclude with a JSON block in the following exact forma
 
 ### Task Instructions:
 Analyze the Java source code and the deterministic SootUp static analysis facts above.
-Use the source code inspection tools (search_source_code, read_source_file) to inspect the relevant classes, methods, and line ranges.
+Use the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to inspect the relevant classes, methods, and line ranges.
 Identify all root-cause bug locations, including multi-file links, polymorphic dispatches, and anonymous classes.
 Produce your localization diagnosis in the required JSON format.
 """
@@ -196,32 +198,70 @@ Produce your localization diagnosis in the required JSON format.
 
     def _extract_aot_static_facts(self, task: Task, repo_context: RepoContext) -> str:
         """
-        Runs precomputed static queries on target classes based on task context.
+        Loads precomputed Ahead-of-Time (AOT) static analysis facts for Condition B.
+        Checks for cached static facts in datasets/precomputed_facts/{task_id}.txt.
+        If not yet generated, extracts them via direct standalone Java SootUpAnalyzer CLI
+        (pure bytecode analysis, zero MCP / zero JSON-RPC) and caches them on disk.
         """
+        precomputed_file = Path("datasets/precomputed_facts") / f"{task.instance_id}.txt"
+        if precomputed_file.exists():
+            try:
+                return precomputed_file.read_text(encoding="utf-8")
+            except Exception:
+                pass
+
         if not repo_context.target_classes_dirs:
             return "[No compiled bytecode target/classes available for static fact extraction.]"
 
-        facts = []
-        target_dir = repo_context.target_classes_arg
+        facts = self._run_offline_sootup_extractor(task, repo_context)
+        if facts:
+            try:
+                precomputed_file.parent.mkdir(parents=True, exist_ok=True)
+                precomputed_file.write_text(facts, encoding="utf-8")
+            except Exception:
+                pass
+
+        return facts if facts else "[No matching static facts extracted for identified types.]"
+
+    def _run_offline_sootup_extractor(self, task: Task, repo_context: RepoContext) -> str:
+        """
+        Invokes the standalone Java SootUpAnalyzer CLI directly to extract static facts.
+        Completely decoupled from the Model Context Protocol (zero MCP / zero JSON-RPC).
+        """
+        engine_dir = self.sootup_engine_dir.resolve()
+        classes_dir = engine_dir / "target" / "classes"
+        cp_file = engine_dir / "classpath.txt"
+
+        if not cp_file.exists():
+            return "[Offline SootUp extractor unavailable: classpath.txt not generated.]"
 
         try:
-            with McpClient(sootup_engine_dir=self.sootup_engine_dir, default_target_dir=target_dir) as client:
-                classes_to_query = self._identify_target_classes(task, repo_context)
-                for cls in classes_to_query:
-                    # 1. Hierarchy
-                    h_fact = client.call_tool("sootup_hierarchy", {"target_class": cls, "target_dir": target_dir})
-                    if "Subclasses:" in h_fact or "Hierarchy Analysis" in h_fact:
-                        facts.append(h_fact.strip())
+            with open(cp_file, "r", encoding="utf-8") as f:
+                deps_cp = f.read().strip()
+            full_cp = f"{classes_dir}:{deps_cp}"
+            target_dir = repo_context.target_classes_arg
 
-                    # 2. Allocations
-                    a_fact = client.call_tool("sootup_find_allocations", {"target_class": cls, "target_dir": target_dir})
-                    if "Match Found:" in a_fact or "Allocations" in a_fact:
-                        facts.append(a_fact.strip())
+            classes_to_query = self._identify_target_classes(task, repo_context)
+            facts = []
 
+            for cls in classes_to_query:
+                # 1. Hierarchy (Direct Java CLI invocation)
+                cmd_h = ["java", "-cp", full_cp, "org.sootup.analyzer.SootUpAnalyzer", target_dir, "hierarchy", cls]
+                res_h = subprocess.run(cmd_h, capture_output=True, text=True, cwd=engine_dir, timeout=60)
+                clean_h = "\n".join([line for line in res_h.stdout.splitlines() if not line.startswith("SLF4J")]).strip()
+                if "Subclasses:" in clean_h or "Hierarchy Analysis" in clean_h:
+                    facts.append(clean_h)
+
+                # 2. Allocations (Direct Java CLI invocation)
+                cmd_a = ["java", "-cp", full_cp, "org.sootup.analyzer.SootUpAnalyzer", target_dir, "find-allocations", cls]
+                res_a = subprocess.run(cmd_a, capture_output=True, text=True, cwd=engine_dir, timeout=60)
+                clean_a = "\n".join([line for line in res_a.stdout.splitlines() if not line.startswith("SLF4J")]).strip()
+                if "Match Found:" in clean_a or "Allocations" in clean_a:
+                    facts.append(clean_a)
+
+            return "\n\n".join(facts)
         except Exception as e:
-            facts.append(f"[Error extracting static facts via SootUp: {e}]")
-
-        return "\n\n".join(facts) if facts else "[No matching static facts extracted for identified types.]"
+            return f"[Error extracting static facts via offline SootUp: {e}]"
 
     def _identify_target_classes(self, task: Task, repo_context: RepoContext) -> List[str]:
         """Identifies key class names to query from task problem statement and repository scan."""
