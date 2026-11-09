@@ -2,9 +2,9 @@
 
 defaults:
   model: "gpt-oss-120b"
-  timeout_per_task: 300  # seconds
-  max_tool_iterations: 8
-  token_budget: 16000
+  timeout_per_task: 600  # seconds
+  max_tool_iterations: 30
+  token_budget: 100000
 
 paths:
   sootup_engine_dir: "sootup_engine"
