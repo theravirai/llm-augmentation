@@ -51,8 +51,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run_parser.add_argument(
         "-o", "--output-dir",
-        default="results",
-        help="Directory to save execution traces and evaluation results"
+        default=None,
+        help="Directory to save execution traces and evaluation results (defaults to results/single_runs/cond_{condition}/{task_id})"
     )
     run_parser.add_argument(
         "--target-dir",
@@ -80,8 +80,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     bench_parser.add_argument(
         "-o", "--output-dir",
-        default="results/benchmark",
-        help="Directory to store evaluation metrics and reports"
+        default=None,
+        help="Directory to store evaluation metrics and reports (defaults to results/benchmarks/{dataset}/cond_{condition})"
     )
     bench_parser.add_argument(
         "--timeout-per-task",
@@ -110,8 +110,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     comp_parser.add_argument(
         "-o", "--output-dir",
-        default="results/comparison",
-        help="Directory to store comparative report"
+        default=None,
+        help="Directory to store comparative report (defaults to results/comparisons/{task_id})"
     )
 
     # Subcommand: tools (Direct MCP tool execution utility)
@@ -150,7 +150,7 @@ def get_agent(condition: str, model: str, config: Dict):
 def handle_run(args, config):
     condition = args.condition.upper()
     model = args.model or config["defaults"]["model"]
-    output_dir = Path(args.output_dir)
+    output_dir = Path(args.output_dir) if args.output_dir else Path("results/single_runs") / f"cond_{condition}" / args.task
     output_dir.mkdir(parents=True, exist_ok=True)
 
     loader = TaskLoader()
@@ -192,7 +192,8 @@ def handle_run(args, config):
 def handle_benchmark(args, config):
     condition = args.condition.upper()
     model = args.model or config["defaults"]["model"]
-    output_dir = Path(args.output_dir)
+    dataset_name = Path(args.dataset).stem.replace("_tasks", "")
+    output_dir = Path(args.output_dir) if args.output_dir else Path("results/benchmarks") / dataset_name / f"cond_{condition}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     loader = TaskLoader()
@@ -241,7 +242,7 @@ def handle_benchmark(args, config):
 
 def handle_compare(args, config):
     model = args.model or config["defaults"]["model"]
-    output_dir = Path(args.output_dir)
+    output_dir = Path(args.output_dir) if args.output_dir else Path("results/comparisons") / args.task
     output_dir.mkdir(parents=True, exist_ok=True)
 
     loader = TaskLoader()
