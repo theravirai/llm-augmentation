@@ -22,6 +22,8 @@ class LocalizationResult:
     predicted_lines: Dict[str, List[int]] = field(default_factory=dict)
     root_cause_explanation: str = ""
     raw_output: str = ""
+    system_prompt: str = ""
+    initial_user_prompt: str = ""
     tool_calls_count: int = 0
     tool_calls_trace: List[Dict[str, Any]] = field(default_factory=list)
     token_usage: Dict[str, int] = field(default_factory=lambda: {
@@ -41,6 +43,8 @@ class LocalizationResult:
             "predicted_methods": self.predicted_methods,
             "predicted_lines": self.predicted_lines,
             "root_cause_explanation": self.root_cause_explanation,
+            "system_prompt": self.system_prompt,
+            "initial_user_prompt": self.initial_user_prompt,
             "tool_calls_count": self.tool_calls_count,
             "tool_calls_trace": self.tool_calls_trace,
             "token_usage": self.token_usage,
@@ -110,6 +114,14 @@ class BaseAgent(ABC):
         methods_m = re.search(r'"(?:localized_methods|methods)"\s*:\s*\[(.*?)\]', text, re.DOTALL)
         if methods_m:
             diagnosis["localized_methods"] = [m.strip().strip("'\"") for m in re.findall(r'["\']([^"\']+)["\']', methods_m.group(1))]
+
+        lines_m = re.search(r'"(?:localized_lines|lines)"\s*:\s*\{([^}]+)\}', text, re.DOTALL)
+        if lines_m:
+            file_lines = re.findall(r'["\']([^"\']+)["\']\s*:\s*\[([0-9,\s\-]+)\]', lines_m.group(1))
+            for fpath, lnums in file_lines:
+                nums = [int(n.strip()) for n in re.findall(r'\b\d+\b', lnums)]
+                if nums:
+                    diagnosis["localized_lines"][fpath] = nums
 
         expl_m = re.search(r'"root_cause_explanation"\s*:\s*"([^"]+)"', text, re.DOTALL)
         if expl_m:

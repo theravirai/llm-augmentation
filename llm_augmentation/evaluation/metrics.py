@@ -35,22 +35,41 @@ class EvaluationReport:
     min_line_distance: Optional[float] = None
     exact_line_hit: bool = False
 
-    # Downstream Patch Resolution measure (Slide 31)
-    patch_resolved: bool = False
+    # Fault Window Localized (within 25 lines of true defect; replaces misleading 'patch_resolved')
+    fault_window_localized: bool = False
 
     # RQ2: Efficiency & Cost Metrics
     tool_calls_count: int = 0
+    source_tool_calls: int = 0
+    mcp_tool_calls: int = 0
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0
     latency_seconds: float = 0.0
     compilation_status: str = "OK"  # "OK", "SKIPPED", "FAILED"
 
+    # Git Commit Verification
+    target_commit: str = ""
+    target_commit_subject: str = ""
+
+    # Initial Prompt Verification
+    system_prompt: str = ""
+    initial_user_prompt: str = ""
+
+    @property
+    def patch_resolved(self) -> bool:
+        """Alias for backwards compatibility with earlier benchmark outputs."""
+        return self.fault_window_localized
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "task_id": self.task_id,
             "condition": self.condition,
             "model": self.model,
+            "target_commit": self.target_commit,
+            "target_commit_subject": self.target_commit_subject,
+            "system_prompt": self.system_prompt,
+            "initial_user_prompt": self.initial_user_prompt,
             "rq1_accuracy": {
                 "file_recall": round(self.file_recall, 4),
                 "file_precision": round(self.file_precision, 4),
@@ -59,6 +78,7 @@ class EvaluationReport:
                 "method_hit": self.method_hit,
                 "min_line_distance": round(self.min_line_distance, 1) if self.min_line_distance is not None else None,
                 "exact_line_hit": self.exact_line_hit,
+                "fault_window_localized": self.fault_window_localized,
                 "patch_resolved": self.patch_resolved,
                 "matched_files": self.matched_files,
                 "missed_files": self.missed_files,
@@ -67,6 +87,8 @@ class EvaluationReport:
             },
             "rq2_cost": {
                 "tool_calls_count": self.tool_calls_count,
+                "source_tool_calls": self.source_tool_calls,
+                "mcp_tool_calls": self.mcp_tool_calls,
                 "prompt_tokens": self.prompt_tokens,
                 "completion_tokens": self.completion_tokens,
                 "total_tokens": self.total_tokens,
@@ -141,9 +163,20 @@ class MetricsCalculator:
         if all_distances:
             min_line_dist = min(all_distances)
 
-        # Downstream patch resolution heuristic:
-        # Patch is resolved if all gold files are localized and at least one key method/line is localized
-        patch_resolved = exact_file_match and (method_hit or exact_line_hit or (min_line_dist is not None and min_line_dist <= 25))
+        # Fault window localization heuristic:
+        # Localized if all gold files are matched and defect window is within 25 lines
+        fault_window_localized = exact_file_match and (method_hit or exact_line_hit or (min_line_dist is not None and min_line_dist <= 25))
+
+        # Differentiate Source navigation vs SootUp MCP tool calls
+        mcp_tools = {
+            "sootup_hierarchy",
+            "sootup_inspect_method",
+            "sootup_find_allocations",
+            "sootup_find_invocations",
+            "sootup_callgraph"
+        }
+        mcp_calls = sum(1 for t in result.tool_calls_trace if t.get("tool") in mcp_tools)
+        source_calls = len(result.tool_calls_trace) - mcp_calls
 
         return EvaluationReport(
             task_id=result.task_id,
@@ -163,8 +196,12 @@ class MetricsCalculator:
             gold_methods=list(gold.method_names),
             min_line_distance=min_line_dist,
             exact_line_hit=exact_line_hit,
-            patch_resolved=patch_resolved,
+            fault_window_localized=fault_window_localized,
+            system_prompt=result.system_prompt,
+            initial_user_prompt=result.initial_user_prompt,
             tool_calls_count=result.tool_calls_count,
+            source_tool_calls=source_calls,
+            mcp_tool_calls=mcp_calls,
             prompt_tokens=result.token_usage.get("prompt_tokens", 0),
             completion_tokens=result.token_usage.get("completion_tokens", 0),
             total_tokens=result.token_usage.get("total_tokens", 0),

@@ -23,11 +23,15 @@ class Evaluator:
         if repo_context and not repo_context.is_compilable:
             comp_status = "FAILED"
 
-        return MetricsCalculator.compute(
+        report = MetricsCalculator.compute(
             result=result,
             gold=parsed_gold,
             compilation_status=comp_status
         )
+        if repo_context:
+            report.target_commit = repo_context.current_commit
+            report.target_commit_subject = repo_context.commit_message
+        return report
 
     @classmethod
     def aggregate_reports(cls, reports: List[EvaluationReport]) -> Dict[str, Any]:
@@ -45,10 +49,12 @@ class Evaluator:
         mean_f1 = sum(r.file_f1 for r in reports) / n
         exact_matches = sum(1 for r in reports if r.exact_file_match)
         method_hits = sum(1 for r in reports if r.method_hit)
-        resolved_count = sum(1 for r in reports if r.patch_resolved)
+        localized_count = sum(1 for r in reports if r.fault_window_localized)
 
         total_tokens = sum(r.total_tokens for r in reports)
         total_tool_calls = sum(r.tool_calls_count for r in reports)
+        total_source_calls = sum(r.source_tool_calls for r in reports)
+        total_mcp_calls = sum(r.mcp_tool_calls for r in reports)
         total_latency = sum(r.latency_seconds for r in reports)
 
         return {
@@ -60,8 +66,11 @@ class Evaluator:
             "mean_file_f1": round(mean_f1 * 100, 1),
             "exact_file_match_rate": round(exact_matches / n * 100, 1),
             "method_hit_rate": round(method_hits / n * 100, 1),
-            "patch_resolution_rate": round(resolved_count / n * 100, 1),
+            "fault_window_localized_rate": round(localized_count / n * 100, 1),
+            "patch_resolution_rate": round(localized_count / n * 100, 1),
             "avg_tokens_per_task": round(total_tokens / n, 1),
             "avg_tool_calls_per_task": round(total_tool_calls / n, 2),
+            "avg_source_tool_calls_per_task": round(total_source_calls / n, 2),
+            "avg_mcp_tool_calls_per_task": round(total_mcp_calls / n, 2),
             "avg_latency_seconds": round(total_latency / n, 2),
         }
