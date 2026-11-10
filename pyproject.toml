@@ -20,3 +20,7 @@ dev = [
 
 [project.scripts]
 llm-aug = "llm_augmentation.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["workspace", ".*", "build", "dist", "sootup_engine"]

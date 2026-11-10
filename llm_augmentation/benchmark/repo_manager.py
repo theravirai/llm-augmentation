@@ -17,6 +17,8 @@ class RepoContext:
     target_classes_dirs: List[Path] = field(default_factory=list)
     is_compilable: bool = True
     compile_error: Optional[str] = None
+    current_commit: str = ""
+    commit_message: str = ""
 
     @property
     def target_classes_arg(self) -> str:
@@ -73,7 +75,7 @@ class RepoManager:
     def prepare_repo_for_task(
         self,
         task: Task,
-        checkout: bool = False,
+        checkout: bool = True,
         compile_if_needed: bool = True
     ) -> RepoContext:
         """
@@ -130,6 +132,24 @@ class RepoManager:
                 context.is_compilable = False
                 context.compile_error = f"Git checkout to {task.base_commit} failed: {e.stderr}"
                 return context
+
+        # Record verified git state
+        try:
+            head_commit = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"],
+                cwd=repo_dir,
+                text=True
+            ).strip()
+            commit_subject = subprocess.check_output(
+                ["git", "log", "-1", "--pretty=%s"],
+                cwd=repo_dir,
+                text=True
+            ).strip()
+            context.current_commit = head_commit
+            context.commit_message = commit_subject
+            print(f"[*] Target repository '{task.repo}' verified at commit {head_commit} ({commit_subject[:60]})", flush=True)
+        except Exception:
+            pass
 
         # 2. Find compiled target/classes directories
         class_dirs = self.find_target_classes(repo_dir)

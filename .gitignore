@@ -46,3 +46,6 @@ classpath.txt
 # Results & Logs
 results/
 .env
+
+# Benchmark Workspace (Target Java Repositories)
+workspace/
