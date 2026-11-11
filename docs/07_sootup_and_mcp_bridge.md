@@ -101,6 +101,11 @@ Implemented in [`SootUpAnalyzer.java`](../sootup_engine/src/main/java/org/sootup
 
 The bridge communicates via standard JSON-RPC 2.0 messages over standard I/O (`stdin` / `stdout`).
 
+> [!NOTE]
+> **Role in Experimental Design:**
+> * The MCP server is the active runtime bridge for **Condition C (On-Demand MCP Tools)**, enabling multi-turn autonomous tool calling.
+> * **Condition B (Precomputed Static Injection)** is completely decoupled from MCP: it extracts bytecode facts ahead of time using the standalone Java `SootUpAnalyzer` CLI and caches them in `datasets/precomputed_facts/`, running with zero MCP runtime dependency.
+
 ```mermaid
 sequenceDiagram
     participant Client as Python McpClient

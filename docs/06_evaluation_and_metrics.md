@@ -54,9 +54,13 @@ Calculates the minimum absolute distance (in lines) between predicted fault line
 $$D_{\text{min}} = \min_{p \in L_{\text{pred}}, g \in L_{\text{gold}}} |p - g|$$
 * **`exact_line_hit`:** $\text{True}$ if $D_{\text{min}} = 0$.
 
-### 3.7 Downstream Patch Resolution Metric
-Patch resolution is evaluated as a downstream measure of localization quality:
-$$\text{Patch Resolved} = \text{Exact File Match} \land (\text{Method Hit} \lor \text{Exact Line Hit} \lor D_{\text{min}} \le 25)$$
+### 3.7 Fault Window Localized (≤25 lines) Metric
+> [!IMPORTANT]
+> The framework evaluates **Fault Localization (FL)**, not Automated Program Repair (APR) or code patching. No code modifications or test-suite verifications are performed.
+
+To evaluate whether the localization precision is narrow enough to enable downstream human or automated repair, the metric evaluates whether all faulty files are identified and the candidate defect window is within 25 lines of the developer's gold diff:
+$$\text{Fault Window Localized} = \text{Exact File Match} \land (\text{Method Hit} \lor \text{Exact Line Hit} \lor D_{\text{min}} \le 25)$$
+*(In legacy tables or prior schemas, this was previously referred to as `patch_resolved` heuristic).*
 
 ---
 
@@ -66,9 +70,13 @@ Implemented in [`EvaluationReport`](../llm_augmentation/evaluation/metrics.py) t
 
 1. **Total Token Overhead ($T_{\text{total}}$):**
    $$T_{\text{total}} = T_{\text{prompt}} + T_{\text{completion}}$$
-2. **Tool Call Volume ($K_{\text{tools}}$):** Total number of SootUp MCP queries executed during the ReAct loop.
+2. **Tool Call Volume & Breakdown ($K_{\text{tools}}$):**
+   - **Source Navigation Calls ($K_{\text{source}}$):** Safe repository operations (`find_files`, `list_directory`, `search_source_code`, `read_source_file`).
+   - **SootUp Static Analysis Calls ($K_{\text{mcp}}$):** Bytecode queries over JSON-RPC (`hierarchy`, `inspect-method`, `find-allocations`, `find-invocations`, `callgraph`).
+   - Displayed in evaluation tables as: `K_total (K_source Source, K_mcp SootUp MCP)`.
 3. **Execution Latency ($S_{\text{latency}}$):** Total wall-clock time (seconds) to complete localization and evaluation.
-4. **Compilation Feasibility:** Records whether target bytecode could be compiled (`OK`, `SKIPPED`, or `FAILED`).
+4. **Target Commit Verification:** Full 40-character SHA of the verified unpatched base commit (`git rev-parse HEAD`).
+5. **Compilation Feasibility:** Records whether target bytecode could be compiled (`OK`, `SKIPPED`, or `FAILED`).
 
 ---
 
@@ -83,8 +91,10 @@ Calculated in [`Evaluator.aggregate_reports`](../llm_augmentation/evaluation/eva
 | **Mean File F1** | $\frac{1}{N} \sum_{i=1}^N \text{F1}_i \times 100\%$ |
 | **Exact Match Rate** | $\frac{1}{N} \sum_{i=1}^N \mathbf{1}_{[\text{ExactMatch}_i]} \times 100\%$ |
 | **Method Hit Rate** | $\frac{1}{N} \sum_{i=1}^N \mathbf{1}_{[\text{MethodHit}_i]} \times 100\%$ |
-| **Patch Resolution Rate**| $\frac{1}{N} \sum_{i=1}^N \mathbf{1}_{[\text{PatchResolved}_i]} \times 100\%$ |
+| **Fault Window Localization Rate**| $\frac{1}{N} \sum_{i=1}^N \mathbf{1}_{[\text{FaultWindowLocalized}_i]} \times 100\%$ |
 | **Avg Tokens per Task** | $\frac{1}{N} \sum_{i=1}^N T_{\text{total}, i}$ |
+| **Avg Source Tool Calls** | $\frac{1}{N} \sum_{i=1}^N K_{\text{source}, i}$ |
+| **Avg SootUp MCP Calls** | $\frac{1}{N} \sum_{i=1}^N K_{\text{mcp}, i}$ |
 | **Avg Latency per Task** | $\frac{1}{N} \sum_{i=1}^N S_{\text{latency}, i}$ |
 
 ---

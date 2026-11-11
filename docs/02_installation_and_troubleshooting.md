@@ -61,7 +61,12 @@ cd ..
 ### 3.1 API Gateway Setup (`.env`)
 The framework supports OpenAI-compatible API gateways, including the **University of Paderborn AI Gateway**, OpenAI, and local endpoints (vLLM / Ollama).
 
-Create a `.env` file in the project root:
+A tracked template [`.env.example`](../.env.example) is provided. Copy it to create your local `.env`:
+```bash
+cp .env.example .env
+```
+
+Configure your credentials in `.env`:
 ```bash
 # University of Paderborn AI Gateway
 OPENAI_API_BASE=https://ai-gateway.uni-paderborn.de
@@ -78,11 +83,10 @@ OPENAI_API_KEY=sk-proj-yourOpenAIKeyHere
 ```
 
 > [!TIP]
-> The [`LLMGateway`](../llm_augmentation/agents/llm_gateway.py) searches for credentials in the following priority order:
-> 1. Active environment variables (`OPENAI_API_BASE`, `OPENAI_API_KEY`, `ANTHROPIC_AUTH_TOKEN`).
+> The [`LLMGateway`](../llm_augmentation/agents/llm_gateway.py) automatically loads `.env` using `python-dotenv` and searches in priority order:
+> 1. Active environment variables (`OPENAI_API_BASE`, `OPENAI_API_KEY`).
 > 2. Local `./.env` file.
 > 3. Parent directory `../.env`.
-> 4. Existing thesis workspace: `/Volumes/BrainStorm/Github/SootUp-Store/swebench-thesis/.env`.
 
 ### 3.2 Global Framework Configuration (`config.yaml`)
 Global execution parameters are managed in [`config.yaml`](../config.yaml):
@@ -90,9 +94,9 @@ Global execution parameters are managed in [`config.yaml`](../config.yaml):
 ```yaml
 defaults:
   model: "gpt-oss-120b"       # Model identifier passed to LLMGateway
-  timeout_per_task: 300       # Per-task execution budget in seconds
-  max_tool_iterations: 10     # Max multi-turn ReAct loops in Condition C
-  token_budget: 16000         # Token limit allocated per task
+  timeout_per_task: 600       # Per-task execution budget in seconds (10 min)
+  max_tool_iterations: 30     # Max multi-turn tool calling iterations
+  token_budget: 100000        # Token limit allocated per task
 
 paths:
   sootup_engine_dir: "sootup_engine"  # Relative path to Maven module
@@ -120,28 +124,27 @@ sootup:
 
 ## 4. Verification & Self-Test
 
-Run the complete test suite to verify that the environment, SootUp engine, MCP JSON-RPC bridge, and evaluators are operational:
+Run the complete test suite using `pytest` to verify that repository tools, the SootUp engine, the MCP bridge, and the evaluation engine are operational:
 
 ```bash
-# 1. Test MCP JSON-RPC Server & Primitives
-python3 tests/test_mcp.py
-
-# 2. Test Benchmark Task Ingestion & Unified Diff Patch Parser
-python3 tests/test_benchmark_and_patch.py
-
-# 3. Test Agent Conditions (A, B, C with live MCP loop)
-python3 tests/test_agents.py
-
-# 4. Test Automated Evaluation Metrics & Comparison Tables
-python3 tests/test_evaluation_engine.py
+pytest
 ```
 
-All 4 test suites should report:
+The test runner will execute all 15 unit tests:
 ```text
-All MCP unit tests passed successfully!
-All Benchmark & Patch Parser tests passed successfully!
-All Agent tests passed successfully!
-All Evaluation Engine tests passed successfully!
+============================= test session starts ==============================
+rootdir: /Volumes/BrainStorm/Github/Thesis/llm-augmentation
+configfile: pyproject.toml
+testpaths: tests
+collected 15 items
+
+tests/test_agents.py ...                                                 [ 20%]
+tests/test_benchmark_and_patch.py ....                                   [ 46%]
+tests/test_evaluation_engine.py .                                        [ 53%]
+tests/test_mcp.py .                                                      [ 60%]
+tests/test_source_tools.py ......                                        [100%]
+
+============================= 15 passed in ~14s ==============================
 ```
 
 ---

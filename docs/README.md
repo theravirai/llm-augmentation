@@ -44,12 +44,14 @@ The documentation is organized into eight specialized guides:
 | **Java SootUp Engine** | ✅ Implemented | 5 primitives in `SootUpAnalyzer.java`, fast application-class scanning, Java 17+ bytecode to Jimple IR. |
 | **MCP Server** | ✅ Implemented | JSON-RPC 2.0 stdio server in `SootUpMcpServer.java` with per-directory JavaView caching. |
 | **MCP Client** | ✅ Implemented | Python subprocess manager in `llm_augmentation/mcp/client.py` using cached `classpath.txt`. |
-| **Benchmark Loader** | ✅ Implemented | `TaskLoader` ingesting 43 SWE-Bench Java tasks across 6 repositories. |
+| **Repository Navigation Tools** | ✅ Implemented | `find_files`, `list_directory`, `search_source_code`, `read_source_file` for safe repository exploration across all conditions. |
+| **Benchmark Loader & Repo Manager** | ✅ Implemented | `TaskLoader` (43 tasks) + `RepoManager` with local `workspace/` auto-clone fallback and automated base commit checkout. |
 | **Ground-Truth Diff Parser** | ✅ Implemented | `PatchParser` parsing unified diffs to extract files, classes, methods, and line ranges. |
-| **Condition A Agent** | ✅ Implemented | `ConditionAAgent` for source-only baseline evaluation. |
-| **Condition B Agent** | ✅ Implemented | `ConditionBAgent` with ahead-of-time (AOT) static fact injection into prompt. |
-| **Condition C Agent** | ✅ Implemented | `ConditionCAgent` autonomous ReAct loop calling live SootUp tools over MCP. |
-| **LLM Gateway** | ✅ Implemented | `LLMGateway` supporting Uni Paderborn AI Gateway, OpenAI, Anthropic, or local endpoints. |
-| **Evaluation Suite** | ✅ Implemented | `Evaluator` and `MetricsCalculator` computing RQ1 and RQ2 metrics against developer Gold Patches. |
-| **CLI** | ✅ Implemented | `run`, `benchmark`, `compare`, and `tools` commands in `llm_augmentation/cli.py`. |
+| **Condition A Agent** | ✅ Implemented | `ConditionAAgent` for source-only baseline evaluation with repository navigation tools. |
+| **Condition B Agent** | ✅ Implemented | `ConditionBAgent` with ahead-of-time (AOT) static fact injection into prompt (decoupled from MCP, zero runtime dependency). |
+| **Condition C Agent** | ✅ Implemented | `ConditionCAgent` autonomous ReAct loop calling live SootUp tools over MCP combined with source tools. |
+| **LLM Gateway** | ✅ Implemented | `LLMGateway` supporting Uni Paderborn AI Gateway, OpenAI, Anthropic, or local endpoints with `.env` / `.env.example`. |
+| **Evaluation Suite** | ✅ Implemented | `Evaluator` and `MetricsCalculator` computing RQ1 (Recall, Precision, F1, Fault Window Localized) and RQ2 (Source vs MCP tool calls, latency, tokens). |
+| **Full Trace Logging** | ✅ Implemented | `JsonLogger` saving step-by-step turn trajectories (`*_trace.json`) and verified 40-character commit hashes. |
+| **CLI & Output Filing** | ✅ Implemented | `run`, `benchmark`, `compare`, and `tools` commands with standardized subdirectories in `results/`. |
 | **Batch Concurrency** | ⏳ Planned | Tasks currently execute sequentially in `benchmark` command (`--limit` supported; multi-threading planned). |

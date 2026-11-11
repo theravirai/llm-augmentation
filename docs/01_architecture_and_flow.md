@@ -22,22 +22,25 @@ graph TB
     end
 
     subgraph Condition_Router["2. Three Experimental Conditions Router"]
-        CondA["Condition A (Source Only)<br/>Issue + Unpatched Source"]
-        CondB["Condition B (Precomputed Facts)<br/>Issue + Ahead-of-Time Static Facts"]
-        CondC["Condition C (On-Demand MCP)<br/>Multi-Turn Autonomous ReAct Loop"]
+        CondA["Condition A (Source Only Baseline)<br/>Issue + Multi-Turn Source Navigation Tools"]
+        CondB["Condition B (Precomputed Static Facts)<br/>Issue + AOT Static Bytecode Facts + Source Tools"]
+        CondC["Condition C (On-Demand MCP Tools)<br/>Multi-Turn ReAct Loop (Source Tools + Live SootUp MCP)"]
     end
 
     subgraph LLM_Agent_Subsystem["3. LLM Agent & Reasoning Subsystem"]
         Gateway["LLMGateway<br/>(Uni Paderborn Gateway / OpenAI / Local OSS)"]
         DiagnosisParser["Structured JSON Diagnostic Parser<br/>(BaseAgent.extract_json_diagnosis)"]
+        SourceTools["SourceToolsExecutor<br/>(find_files, list_directory, search_source_code, read_source_file)"]
     end
 
-    subgraph MCP_Bridge["4. Model Context Protocol (MCP) Bridge"]
+    subgraph MCP_Bridge["4. Model Context Protocol (MCP) Bridge (Condition C)"]
         McpClient["Python McpClient<br/>(Subprocess JSON-RPC 2.0 Client)"]
         McpServer["Java SootUpMcpServer<br/>(STDIN/STDOUT JSON-RPC 2.0 Server)"]
     end
 
-    subgraph SootUp_Engine["5. SootUp 3.x Analysis Engine (Java 17+)"]
+    subgraph Static_Fact_Extraction["5. SootUp Static Analysis & Facts (Condition B & C)"]
+        AOT_Cache["Offline Facts Cache<br/>(datasets/precomputed_facts/*.txt)"]
+        StandaloneCLI["Standalone SootUpAnalyzer CLI<br/>(Zero MCP / Pure Bytecode Extraction)"]
         JavaView["JavaView & TypeHierarchy<br/>(Reads target/classes bytecode)"]
         JimpleIR["Jimple 3-Address IR Transformer"]
         
@@ -59,9 +62,17 @@ graph TB
     Condition_Router --> CondB
     Condition_Router --> CondC
 
+    CondA <-->|Multi-turn source exploration| SourceTools
     CondA --> Gateway
-    CondB --> Primitives -.->|AOT Dump| Gateway
-    CondC <-->|ReAct Tool Calls| McpClient
+
+    CondB --> AOT_Cache
+    AOT_Cache -.->|Fallback extract| StandaloneCLI
+    StandaloneCLI --> Primitives
+    CondB -->|AOT facts in prompt| Gateway
+    CondB <-->|Multi-turn source verification| SourceTools
+
+    CondC <-->|Source navigation tools| SourceTools
+    CondC <-->|ReAct MCP Tool Calls| McpClient
     McpClient <-->|stdio JSON-RPC| McpServer
     McpServer --> Primitives
     Primitives --> JimpleIR
@@ -79,20 +90,27 @@ graph TB
 
 ### 2.1 Benchmark Harness & Dataset Manager
 - **[`TaskLoader`](../llm_augmentation/benchmark/task_loader.py):** Loads and indexes the 43 SWE-Bench Multilingual (Java) defect tasks stored in `datasets/`.
-- **[`RepoManager`](../llm_augmentation/benchmark/repo_manager.py):** Locates target open-source repositories (`google/gson`, `apache/druid`, etc.), optionally checks out `base_commit`, identifies multi-module `target/classes` bytecode directories, and validates whether the target codebase compiles.
+- **[`RepoManager`](../llm_augmentation/benchmark/repo_manager.py):** Manages local repository copies in `workspace/` (with automatic GitHub fallback cloning), automatically checks out the exact `base_commit`, records full 40-character commit hashes, discovers multi-module `target/classes` bytecode directories, and validates whether the target codebase compiles.
 - **[`PatchParser`](../llm_augmentation/evaluation/patch_parser.py):** Analyzes the developer's Gold Patch (`.patch` unified diff) to establish ground-truth modified files, classes, methods, hunks, and exact lines touched.
 
 ### 2.2 Experimental Condition Router
 The CLI routes execution to one of three experimental conditions defined by the thesis research design:
-1. **Condition A (`ConditionAAgent`):** Baseline source-only prompt. Measures the model's token-level reasoning without static analysis assistance.
-2. **Condition B (`ConditionBAgent`):** Passive static injection. Extracts structural facts ahead-of-time (AOT) and embeds them directly into the prompt context to observe whether the model suffers from **Confirmation Bias**.
-3. **Condition C (`ConditionCAgent`):** Active on-demand tool calling. Launches a multi-turn ReAct loop where the model queries live SootUp static analysis tools via MCP.
+1. **Condition A (`ConditionAAgent`):** Baseline source-only evaluation equipped with repository inspection tools (`find_files`, `list_directory`, `search_source_code`, `read_source_file`). Evaluates the model's exploratory reasoning when limited strictly to textual source representations without static analysis assistance.
+2. **Condition B (`ConditionBAgent`):** Passive static injection. Injects deterministic Ahead-of-Time (AOT) static analysis facts directly into the initial prompt context from `datasets/precomputed_facts/` (with standalone Java CLI fallback; completely decoupled from MCP). The model uses source navigation tools to verify exact line ranges, testing whether passive static injection suffers from **Confirmation Bias**.
+3. **Condition C (`ConditionCAgent`):** Active on-demand tool calling. Equips the autonomous LLM agent with both source navigation tools and live SootUp static analysis tools via the Model Context Protocol (MCP) in a dynamic ReAct loop.
 
 ### 2.3 LLM Gateway & Provider Layer
 - **[`LLMGateway`](../llm_augmentation/agents/llm_gateway.py):** Connects to OpenAI-compatible endpoints, auto-detecting environment credentials for the **University of Paderborn AI Gateway** (`https://ai-gateway.uni-paderborn.de`), OpenAI, Anthropic, or local inference engines (vLLM / Ollama).
 - Formats tool schemas using the standard OpenAI function calling format.
 
-### 2.4 Model Context Protocol (MCP) Bridge
+### 2.4 Repository Source Navigation Tools
+- **[`SourceToolsExecutor`](../llm_augmentation/tools/source_tools.py):** Provides sandboxed, non-destructive read operations against the target repository:
+  - `find_files`: Locates files matching glob patterns (e.g. `*TypeAdapter*.java`).
+  - `list_directory`: Recursively traverses package hierarchies and directory structures.
+  - `search_source_code`: Executes fast regex/keyword grep across repository sources.
+  - `read_source_file`: Reads specified line ranges with line numbering.
+
+### 2.5 Model Context Protocol (MCP) Bridge (Condition C)
 - **[`McpClient`](../llm_augmentation/mcp/client.py):** Spawns the Java MCP server as a subprocess using cached dependency classpaths (`classpath.txt`), executing the `initialize` handshake and relaying tool calls.
 - **[`SootUpMcpServer`](../sootup_engine/src/main/java/org/sootup/analyzer/SootUpMcpServer.java):** Listens on standard input for JSON-RPC 2.0 messages, routes requests to `SootUpAnalyzer`, caches `JavaView` instances by target directory, and formats responses back to standard output.
 
@@ -125,8 +143,8 @@ sequenceDiagram
     User->>CLI: python -m llm_augmentation.cli run -c C -t google__gson-2158
     CLI->>Loader: get_task("google__gson-2158")
     Loader-->>CLI: Task object (problem_statement, patch, base_commit)
-    CLI->>Repo: prepare_repo_for_task(task)
-    Repo-->>CLI: RepoContext (target_classes_dirs, is_compilable)
+    CLI->>Repo: prepare_repo_for_task(task, checkout=True)
+    Repo-->>CLI: RepoContext (target_commit="666e5f8b...", target_classes_dirs, is_compilable)
 
     CLI->>Agent: run(task, repo_context)
     Agent->>MCP: start_server(target_classes)
@@ -134,8 +152,8 @@ sequenceDiagram
     MCP->>Server: {"method": "initialize", "params": {...}}
     Server-->>MCP: {"result": {"capabilities": {"tools": {}}}}
 
-    Note over Agent,Gateway: Turn 1: Initial Investigation
-    Agent->>Gateway: chat_completion(messages=[ProblemStatement], tools=SOOTUP_TOOLS)
+    Note over Agent,Gateway: Turn 1: Initial Investigation (Source Tools + MCP)
+    Agent->>Gateway: chat_completion(messages=[ProblemStatement], tools=[SOURCE_TOOLS, SOOTUP_TOOLS])
     Gateway-->>Agent: tool_calls=[sootup_hierarchy(target_class="com.google.gson.TypeAdapter")]
 
     Note over Agent,Server: Live Bytecode Query Loop
@@ -147,7 +165,7 @@ sequenceDiagram
     MCP-->>Agent: Formatted static hierarchy facts
 
     Note over Agent,Gateway: Turn 2: Allocation Site Pinpointing
-    Agent->>Gateway: chat_completion(messages=[ToolResult], tools=SOOTUP_TOOLS)
+    Agent->>Gateway: chat_completion(messages=[ToolResult], tools=[SOURCE_TOOLS, SOOTUP_TOOLS])
     Gateway-->>Agent: tool_calls=[sootup_find_allocations(target_class="com.google.gson.Gson$1")]
     Agent->>MCP: call_tool("sootup_find_allocations", ...)
     MCP->>Server: {"method": "tools/call", ...}
@@ -156,17 +174,17 @@ sequenceDiagram
     Server-->>MCP: JSON-RPC response
     MCP-->>Agent: Allocation facts
 
-    Note over Agent,Gateway: Turn 3: Final Synthesis
-    Agent->>Gateway: chat_completion(messages=[ToolResult])
+    Note over Agent,Gateway: Turn 3: Source Verification & Diagnosis
+    Agent->>Gateway: chat_completion(messages=[ToolResult], tools=[SOURCE_TOOLS, SOOTUP_TOOLS])
     Gateway-->>Agent: Final JSON Diagnosis (files, classes, methods, lines)
     Agent->>MCP: close()
-    Agent-->>CLI: LocalizationResult
+    Agent-->>CLI: LocalizationResult (predictions, traces, prompt snapshots)
 
     Note over CLI,Rep: Ground Truth Evaluation & Reporting
     CLI->>Eval: evaluate_task(result, task, repo_context)
-    Eval-->>CLI: EvaluationReport (Recall: 100%, MethodHit: true, Resolved: true)
-    CLI->>Rep: generate_task_report(report)
-    Rep-->>User: Console output + saved .md and .json reports
+    Eval-->>CLI: EvaluationReport (Recall: 100%, FaultWindowLocalized: true)
+    CLI->>Rep: generate_task_report(report, traces)
+    Rep-->>User: Console output + saved .md report, _eval.json, and _trace.json
 ```
 
 ---

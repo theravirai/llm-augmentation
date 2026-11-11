@@ -30,23 +30,31 @@ llm-augmentation/
 │   ├── lucene_tasks.json
 │   ├── lombok_tasks.json
 │   ├── javaparser_tasks.json
-│   └── rxjava_tasks.json
+│   ├── rxjava_tasks.json
+│   └── precomputed_facts/               # Condition B AOT static bytecode facts cache
+│       ├── google__gson-2158.txt
+│       ├── google__gson-1014.txt
+│       └── google__gson-1093.txt
 │
-└── workspace/ (or external workspace)   # Local clones of target Java repositories
+└── workspace/                           # Dedicated target repository clones (.gitignore)
     ├── gson/
     │   ├── .git/
     │   ├── pom.xml
     │   └── gson/target/classes/         # Compiled bytecode (.class files)
-    └── druid/
+    ├── druid/
+    │   ├── .git/
+    │   └── processing/target/classes/
+    └── lombok/
         ├── .git/
-        └── processing/target/classes/
+        └── target/classes/
 ```
 
 > [!NOTE]
-> The [`RepoManager`](../llm_augmentation/benchmark/repo_manager.py) searches for cloned target repositories in:
-> 1. `./workspace/`
-> 2. `/Volumes/BrainStorm/Github/SootUp-Store/thesis-experiments/`
-> 3. `/Volumes/BrainStorm/Github/SootUp-Store/swebench-java-evaluation/workspace/`
+> The [`RepoManager`](../llm_augmentation/benchmark/repo_manager.py) searches for target repositories in:
+> 1. `./workspace/<repo>` (Primary local workspace, excluded from version control).
+> 2. Known local experiment paths (`/Volumes/BrainStorm/Github/SootUp-Store/...`).
+> 
+> **Automatic Auto-Clone Fallback:** If a target repository is not found locally, `RepoManager` automatically clones it from `https://github.com/<owner>/<repo>.git` into `./workspace/<repo>` and checks out the required `base_commit`.
 
 ---
 
