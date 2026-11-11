@@ -164,7 +164,7 @@ def handle_run(args, config):
     print(f"{'='*70}")
 
     repo_manager = RepoManager()
-    repo_context = repo_manager.prepare_repo_for_task(task, compile_if_needed=False)
+    repo_context = repo_manager.prepare_repo_for_task(task, checkout=True, compile_if_needed=False)
     if args.target_dir:
         repo_context.target_classes_dirs = [Path(args.target_dir).resolve()]
 
@@ -174,20 +174,33 @@ def handle_run(args, config):
     # Evaluate against developer Gold Patch
     report = Evaluator.evaluate_task(res, task, repo_context)
 
-    # Save reports
-    md_report = MarkdownReporter.generate_task_report(report)
+    # Save reports and full step-by-step trace
+    md_report = MarkdownReporter.generate_task_report(report, traces=res.tool_calls_trace, raw_output=res.raw_output)
     md_file = output_dir / f"{task.instance_id}_cond_{condition}_report.md"
     json_file = output_dir / f"{task.instance_id}_cond_{condition}_eval.json"
+    trace_file = output_dir / f"{task.instance_id}_cond_{condition}_trace.json"
 
     with open(md_file, "w", encoding="utf-8") as f:
         f.write(md_report)
     JsonLogger.save_task_report(report, json_file)
+    JsonLogger.save_task_trace({
+        "task_id": task.instance_id,
+        "condition": condition,
+        "model": model,
+        "target_commit": repo_context.current_commit,
+        "target_commit_subject": repo_context.commit_message,
+        "system_prompt": res.system_prompt,
+        "initial_user_prompt": res.initial_user_prompt,
+        "tool_calls_trace": res.tool_calls_trace,
+        "raw_output": res.raw_output,
+        "evaluation": report.to_dict()
+    }, trace_file)
 
     if res.raw_output:
         print(f"\n--- [Model Diagnosis Output] ---\n{res.raw_output.strip()}\n--------------------------------\n")
 
     print(md_report)
-    print(f"\n[+] Results saved to: {md_file} and {json_file}")
+    print(f"\n[+] Results saved to: {md_file}, {json_file}, and {trace_file}")
 
 def handle_benchmark(args, config):
     condition = args.condition.upper()
@@ -256,7 +269,7 @@ def handle_compare(args, config):
     print(f"{'='*70}\n")
 
     repo_manager = RepoManager()
-    repo_context = repo_manager.prepare_repo_for_task(task, compile_if_needed=False)
+    repo_context = repo_manager.prepare_repo_for_task(task, checkout=True, compile_if_needed=False)
 
     reports: Dict[str, EvaluationReport] = {}
     for cond in ["A", "B", "C"]:
@@ -265,8 +278,23 @@ def handle_compare(args, config):
         res = agent.run(task, repo_context)
         rep = Evaluator.evaluate_task(res, task, repo_context)
         reports[cond] = rep
+
+        # Save eval metrics, detailed trajectory trace, and markdown report
         JsonLogger.save_task_report(rep, output_dir / f"{task.instance_id}_cond_{cond}_eval.json")
-        md_task_rep = MarkdownReporter.generate_task_report(rep)
+        JsonLogger.save_task_trace({
+            "task_id": task.instance_id,
+            "condition": cond,
+            "model": model,
+            "target_commit": repo_context.current_commit,
+            "target_commit_subject": repo_context.commit_message,
+            "system_prompt": res.system_prompt,
+            "initial_user_prompt": res.initial_user_prompt,
+            "tool_calls_trace": res.tool_calls_trace,
+            "raw_output": res.raw_output,
+            "evaluation": rep.to_dict()
+        }, output_dir / f"{task.instance_id}_cond_{cond}_trace.json")
+
+        md_task_rep = MarkdownReporter.generate_task_report(rep, traces=res.tool_calls_trace, raw_output=res.raw_output)
         with open(output_dir / f"{task.instance_id}_cond_{cond}_report.md", "w", encoding="utf-8") as f:
             f.write(md_task_rep)
         if res.raw_output:

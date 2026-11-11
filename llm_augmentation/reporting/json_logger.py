@@ -17,6 +17,16 @@ class JsonLogger:
             json.dump(report.to_dict(), f, indent=2)
 
     @classmethod
+    def save_task_trace(cls, trace_data: Dict[str, Any], output_file: str | Path):
+        """
+        Saves full step-by-step agent trajectory traces (tool calls, inputs, outputs, thoughts).
+        """
+        path = Path(output_file).resolve()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(trace_data, f, indent=2)
+
+    @classmethod
     def save_batch_summary(
         cls,
         summary: Dict[str, Any],

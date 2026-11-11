@@ -180,6 +180,8 @@ Produce your localization diagnosis in the required JSON format.
             predicted_lines=parsed_json.get("localized_lines", {}),
             root_cause_explanation=parsed_json.get("root_cause_explanation", ""),
             raw_output=final_content,
+            system_prompt=self.SYSTEM_PROMPT,
+            initial_user_prompt=user_content,
             tool_calls_count=len(tool_traces),
             tool_calls_trace=tool_traces,
             token_usage=total_tokens,

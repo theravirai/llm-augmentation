@@ -1,5 +1,6 @@
+import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from llm_augmentation.evaluation.metrics import EvaluationReport
 
@@ -9,14 +10,24 @@ class MarkdownReporter:
     """
 
     @classmethod
-    def generate_task_report(cls, report: EvaluationReport) -> str:
+    def generate_task_report(
+        cls,
+        report: EvaluationReport,
+        traces: Optional[List[Dict[str, Any]]] = None,
+        raw_output: Optional[str] = None
+    ) -> str:
         md = []
         md.append(f"# Fault Localization Report: `{report.task_id}`\n")
         md.append(f"**Condition:** {report.condition}  ")
         md.append(f"**Model:** {report.model}  ")
+        if report.target_commit:
+            commit_info = f"`{report.target_commit}`"
+            if report.target_commit_subject:
+                commit_info += f" ({report.target_commit_subject})"
+            md.append(f"**Target Commit:** {commit_info} [Verified Faulty Base Commit]  ")
         md.append(f"**Compilation Status:** {report.compilation_status}  ")
         md.append(f"**Exact File Match:** {'✅ Yes' if report.exact_file_match else '❌ No'}  ")
-        md.append(f"**Patch Resolved:** {'✅ Yes' if report.patch_resolved else '❌ No'}  \n")
+        md.append(f"**Fault Window Localized (≤25 lines):** {'✅ Yes' if report.fault_window_localized else '❌ No'}  \n")
 
         md.append("## RQ1: Localization Accuracy")
         md.append("| Metric | Value |")
@@ -27,6 +38,7 @@ class MarkdownReporter:
         md.append(f"| Method Hit | {'✅ Yes' if report.method_hit else '❌ No'} ({', '.join(report.matched_methods) or 'None'}) |")
         line_dist_str = f"{report.min_line_distance:.1f} lines" if report.min_line_distance is not None else "N/A"
         md.append(f"| Min Line Proximity | {line_dist_str} |")
+        md.append(f"| Fault Window Localized | {'✅ Yes' if report.fault_window_localized else '❌ No'} |")
         md.append("")
 
         md.append("### File Identification Details")
@@ -42,11 +54,53 @@ class MarkdownReporter:
         md.append("## RQ2: Efficiency & Cost")
         md.append("| Metric | Value |")
         md.append("| :--- | :--- |")
-        md.append(f"| Tool Calls Count | {report.tool_calls_count} |")
+        md.append(f"| Tool Calls Count | {report.tool_calls_count} ({report.source_tool_calls} Source, {report.mcp_tool_calls} SootUp MCP) |")
         md.append(f"| Prompt Tokens | {report.prompt_tokens} |")
         md.append(f"| Completion Tokens | {report.completion_tokens} |")
         md.append(f"| Total Tokens | {report.total_tokens} |")
         md.append(f"| Execution Latency | {report.latency_seconds:.2f}s |")
+        md.append("")
+
+        if traces:
+            md.append("## Step-by-Step Tool Execution Trace")
+            md.append("| Step | Tool Type | Tool Name | Arguments | Output Preview |")
+            md.append("| :--- | :--- | :--- | :--- | :--- |")
+            for idx, tr in enumerate(traces, start=1):
+                tool_name = tr.get("tool", "unknown")
+                is_mcp = tool_name.startswith("sootup_")
+                tool_type = "SootUp MCP" if is_mcp else "Source Tool"
+                args_str = json.dumps(tr.get("arguments", {}))
+                if len(args_str) > 80:
+                    args_str = args_str[:77] + "..."
+                args_cell = f"`{args_str}`"
+                preview = tr.get("output_preview", "").replace("\n", " ").replace("|", "\\|").strip()
+                if len(preview) > 100:
+                    preview = preview[:97] + "..."
+                md.append(f"| {idx} | {tool_type} | `{tool_name}` | {args_cell} | {preview} |")
+            md.append("")
+
+        if raw_output:
+            md.append("## LLM Model Final Diagnosis")
+            md.append("```json")
+            md.append(raw_output.strip())
+            md.append("```\n")
+
+        if report.system_prompt or report.initial_user_prompt:
+            md.append("## Turn 1: Initial Prompts Given to Subject LLM\n")
+            if report.system_prompt:
+                md.append("<details>")
+                md.append("<summary><b>View System Prompt</b></summary>\n")
+                md.append("```text")
+                md.append(report.system_prompt.strip())
+                md.append("```")
+                md.append("</details>\n")
+            if report.initial_user_prompt:
+                md.append("<details>")
+                md.append("<summary><b>View Initial User Prompt</b></summary>\n")
+                md.append("```text")
+                md.append(report.initial_user_prompt.strip())
+                md.append("```")
+                md.append("</details>\n")
 
         return "\n".join(md)
 
@@ -99,23 +153,41 @@ class MarkdownReporter:
         task_id = next(iter(reports_by_condition.values())).task_id if reports_by_condition else "Unknown"
         md.append(f"# Three-Condition Comparative Evaluation: `{task_id}`\n")
 
-        md.append("| Dimension | Condition A (Source Only) | Condition B (Precomputed Facts) | Condition C (On-Demand MCP) |")
-        md.append("| :--- | :--- | :--- | :--- |")
-
         conds = ["A", "B", "C"]
         rA = reports_by_condition.get("A")
         rB = reports_by_condition.get("B")
         rC = reports_by_condition.get("C")
 
+        first_rep = rA or rB or rC
+        if first_rep and first_rep.target_commit:
+            commit_lbl = f"`{first_rep.target_commit}`"
+            if first_rep.target_commit_subject:
+                commit_lbl += f" ({first_rep.target_commit_subject})"
+            md.append(f"**Verified Target Commit:** {commit_lbl}\n")
+
+        md.append("| Dimension | Condition A (Source Only) | Condition B (Precomputed Facts) | Condition C (On-Demand MCP) |")
+        md.append("| :--- | :--- | :--- | :--- |")
+
         def val(report, attr, fmt=lambda x: str(x)):
             return fmt(getattr(report, attr)) if report else "N/A"
 
+        def tool_calls_fmt(report):
+            if not report:
+                return "N/A"
+            return f"{report.tool_calls_count} ({report.source_tool_calls} Source, {report.mcp_tool_calls} SootUp MCP)"
+
+        commit_val_A = f"`{rA.target_commit}`" if rA and rA.target_commit else "N/A"
+        commit_val_B = f"`{rB.target_commit}`" if rB and rB.target_commit else "N/A"
+        commit_val_C = f"`{rC.target_commit}`" if rC and rC.target_commit else "N/A"
+
+        md.append(f"| **Target Commit** | {commit_val_A} | {commit_val_B} | {commit_val_C} |")
         md.append(f"| **File Recall** | {val(rA, 'file_recall', lambda x: f'{x*100:.0f}%')} | {val(rB, 'file_recall', lambda x: f'{x*100:.0f}%')} | {val(rC, 'file_recall', lambda x: f'{x*100:.0f}%')} |")
         md.append(f"| **File Precision** | {val(rA, 'file_precision', lambda x: f'{x*100:.0f}%')} | {val(rB, 'file_precision', lambda x: f'{x*100:.0f}%')} | {val(rC, 'file_precision', lambda x: f'{x*100:.0f}%')} |")
         md.append(f"| **Exact Match** | {val(rA, 'exact_file_match', lambda x: '✅ Yes' if x else '❌ No')} | {val(rB, 'exact_file_match', lambda x: '✅ Yes' if x else '❌ No')} | {val(rC, 'exact_file_match', lambda x: '✅ Yes' if x else '❌ No')} |")
         md.append(f"| **Method Hit** | {val(rA, 'method_hit', lambda x: '✅ Yes' if x else '❌ No')} | {val(rB, 'method_hit', lambda x: '✅ Yes' if x else '❌ No')} | {val(rC, 'method_hit', lambda x: '✅ Yes' if x else '❌ No')} |")
-        md.append(f"| **Patch Resolved** | {val(rA, 'patch_resolved', lambda x: '✅ Yes' if x else '❌ No')} | {val(rB, 'patch_resolved', lambda x: '✅ Yes' if x else '❌ No')} | {val(rC, 'patch_resolved', lambda x: '✅ Yes' if x else '❌ No')} |")
-        md.append(f"| **Tool Calls** | {val(rA, 'tool_calls_count')} | {val(rB, 'tool_calls_count')} | {val(rC, 'tool_calls_count')} |")
+        md.append(f"| **Min Line Distance** | {val(rA, 'min_line_distance', lambda x: f'{x:.1f} lines' if x is not None else 'N/A')} | {val(rB, 'min_line_distance', lambda x: f'{x:.1f} lines' if x is not None else 'N/A')} | {val(rC, 'min_line_distance', lambda x: f'{x:.1f} lines' if x is not None else 'N/A')} |")
+        md.append(f"| **Fault Window Localized (≤25 lines)** | {val(rA, 'fault_window_localized', lambda x: '✅ Yes' if x else '❌ No')} | {val(rB, 'fault_window_localized', lambda x: '✅ Yes' if x else '❌ No')} | {val(rC, 'fault_window_localized', lambda x: '✅ Yes' if x else '❌ No')} |")
+        md.append(f"| **Tool Calls Breakdown** | {tool_calls_fmt(rA)} | {tool_calls_fmt(rB)} | {tool_calls_fmt(rC)} |")
         md.append(f"| **Total Tokens** | {val(rA, 'total_tokens')} | {val(rB, 'total_tokens')} | {val(rC, 'total_tokens')} |")
         md.append(f"| **Latency** | {val(rA, 'latency_seconds', lambda x: f'{x:.1f}s')} | {val(rB, 'latency_seconds', lambda x: f'{x:.1f}s')} | {val(rC, 'latency_seconds', lambda x: f'{x:.1f}s')} |")
 
