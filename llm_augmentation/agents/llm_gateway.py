@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -112,45 +113,70 @@ class LLMGateway:
             ]
             payload["tool_choice"] = "auto"
 
-        try:
-            resp = requests.post(endpoint, headers=headers, json=payload, timeout=self.timeout)
-            resp.raise_for_status()
-            data = resp.json()
+        max_retries = 5
+        backoff = 3.0
 
-            choice = data.get("choices", [{}])[0]
-            msg = choice.get("message", {})
+        for attempt in range(1, max_retries + 1):
+            try:
+                resp = requests.post(endpoint, headers=headers, json=payload, timeout=self.timeout)
+                if resp.status_code in [502, 503, 504] and attempt < max_retries:
+                    print(f"  -> [LLMGateway] HTTP {resp.status_code} proxy error. Retrying in {backoff:.1f}s (attempt {attempt}/{max_retries})...", flush=True)
+                    time.sleep(backoff)
+                    backoff *= 1.8
+                    continue
 
-            content = msg.get("content")
-            if not content and "reasoning_content" in msg:
-                content = msg.get("reasoning_content")
-            tool_calls = []
+                resp.raise_for_status()
+                data = resp.json()
 
-            if "tool_calls" in msg and msg["tool_calls"]:
-                for tc in msg["tool_calls"]:
-                    fn = tc.get("function", {})
-                    fn_name = fn.get("name", "")
-                    fn_args_raw = fn.get("arguments", "{}")
-                    try:
-                        fn_args = json.loads(fn_args_raw) if isinstance(fn_args_raw, str) else fn_args_raw
-                    except json.JSONDecodeError:
-                        fn_args = {}
-                    tool_calls.append(ToolCall(id=tc.get("id", ""), name=fn_name, arguments=fn_args))
+                choice = data.get("choices", [{}])[0]
+                msg = choice.get("message", {})
 
-            usage = data.get("usage", {})
-            return LLMResponse(
-                content=content,
-                tool_calls=tool_calls,
-                usage={
-                    "prompt_tokens": usage.get("prompt_tokens", 0),
-                    "completion_tokens": usage.get("completion_tokens", 0),
-                    "total_tokens": usage.get("total_tokens", 0)
-                },
-                raw_response=data
-            )
+                content = msg.get("content")
+                if not content and "reasoning_content" in msg:
+                    content = msg.get("reasoning_content")
+                tool_calls = []
 
-        except Exception as e:
-            # Return error representation in LLMResponse
-            return LLMResponse(
-                content=f"[Error during LLM invocation: {e}]",
-                raw_response={"error": str(e)}
-            )
+                if "tool_calls" in msg and msg["tool_calls"]:
+                    for tc in msg["tool_calls"]:
+                        fn = tc.get("function", {})
+                        fn_name = fn.get("name", "")
+                        fn_args_raw = fn.get("arguments", "{}")
+                        try:
+                            fn_args = json.loads(fn_args_raw) if isinstance(fn_args_raw, str) else fn_args_raw
+                        except json.JSONDecodeError:
+                            fn_args = {}
+                        tool_calls.append(ToolCall(id=tc.get("id", ""), name=fn_name, arguments=fn_args))
+
+                usage = data.get("usage", {})
+                return LLMResponse(
+                    content=content,
+                    tool_calls=tool_calls,
+                    usage={
+                        "prompt_tokens": usage.get("prompt_tokens", 0),
+                        "completion_tokens": usage.get("completion_tokens", 0),
+                        "total_tokens": usage.get("total_tokens", 0)
+                    },
+                    raw_response=data
+                )
+
+            except requests.exceptions.RequestException as e:
+                status = getattr(getattr(e, "response", None), "status_code", None)
+                if (status in [502, 503, 504] or isinstance(e, (requests.exceptions.ConnectionError, requests.exceptions.Timeout))) and attempt < max_retries:
+                    print(f"  -> [LLMGateway] Transient network/proxy error ({e}). Retrying in {backoff:.1f}s (attempt {attempt}/{max_retries})...", flush=True)
+                    time.sleep(backoff)
+                    backoff *= 1.8
+                    continue
+                return LLMResponse(
+                    content=f"[Error during LLM invocation: {e}]",
+                    raw_response={"error": str(e)}
+                )
+            except Exception as e:
+                return LLMResponse(
+                    content=f"[Error during LLM invocation: {e}]",
+                    raw_response={"error": str(e)}
+                )
+
+        return LLMResponse(
+            content="[Error during LLM invocation: Max retries exceeded]",
+            raw_response={"error": "Max retries exceeded"}
+        )

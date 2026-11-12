@@ -96,6 +96,8 @@ class SourceToolsExecutor:
     def execute(cls, tool_name: str, arguments: Dict[str, Any], repo_path: Path) -> str:
         if not repo_path or not repo_path.exists():
             return f"Error: Repository path '{repo_path}' does not exist on disk."
+        repo_path = repo_path.resolve()
+        repo_path = Path(repo_path).resolve()
 
         if tool_name == "search_source_code":
             query = arguments.get("query", "")
@@ -134,6 +136,7 @@ class SourceToolsExecutor:
 
         if not repo_path or not repo_path.exists():
             return f"Error: Repository path '{repo_path}' does not exist on disk."
+        repo_path = repo_path.resolve()
 
         results: List[str] = []
         try:
@@ -240,6 +243,7 @@ class SourceToolsExecutor:
 
         if not repo_path or not repo_path.exists():
             return f"Error: Repository path '{repo_path}' does not exist on disk."
+        repo_path = repo_path.resolve()
 
         matches: List[str] = []
         for path in repo_path.rglob(file_pattern):
@@ -268,6 +272,7 @@ class SourceToolsExecutor:
     ) -> str:
         if not repo_path or not repo_path.exists():
             return f"Error: Repository path '{repo_path}' does not exist on disk."
+        repo_path = repo_path.resolve()
 
         target_dir = (repo_path / path_str.strip()).resolve() if path_str and path_str.strip() else repo_path.resolve()
 

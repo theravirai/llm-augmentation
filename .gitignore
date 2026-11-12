@@ -49,3 +49,6 @@ results/
 
 # Benchmark Workspace (Target Java Repositories)
 workspace/
+
+# Temporary Scratch Scripts & Files
+scratch/

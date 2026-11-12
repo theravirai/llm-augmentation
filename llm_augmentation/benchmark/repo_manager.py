@@ -154,8 +154,20 @@ class RepoManager:
         # 2. Find compiled target/classes directories
         class_dirs = self.find_target_classes(repo_dir)
 
-        # 3. If no target classes found and compile_if_needed is True, attempt compilation
-        if not class_dirs and compile_if_needed:
+        # 3. Check if all src/main/java modules have compiled classes; if not and compile_if_needed is True, compile
+        src_dirs = list(repo_dir.glob("**/src/main/java"))
+        needs_compile = False
+        if compile_if_needed:
+            if not class_dirs:
+                needs_compile = True
+            else:
+                for s in src_dirs:
+                    m_target = s.parent.parent.parent / "target" / "classes"
+                    if not m_target.exists() or not any(m_target.rglob("*.class")):
+                        needs_compile = True
+                        break
+
+        if needs_compile:
             pom_file = repo_dir / "pom.xml"
             if pom_file.exists():
                 try:
@@ -169,10 +181,19 @@ class RepoManager:
                     )
                     class_dirs = self.find_target_classes(repo_dir)
                 except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-                    err = getattr(e, "stderr", str(e))
-                    context.is_compilable = False
-                    context.compile_error = f"Bytecode compilation failed: {err}"
-                    return context
+                    # Run generate-sources first so generated files (like GsonBuildConfig) exist
+                    try:
+                        subprocess.run(["mvn", "generate-sources", "-DskipTests", "-q"], cwd=repo_dir, timeout=60, capture_output=True)
+                    except Exception:
+                        pass
+                    # Fallback direct javac compilation if Maven fails (e.g. JDK 26 vs Java 7 release flag)
+                    if self.fallback_compile(repo_dir):
+                        class_dirs = self.find_target_classes(repo_dir)
+                    if not class_dirs:
+                        err = getattr(e, "stderr", str(e))
+                        context.is_compilable = False
+                        context.compile_error = f"Bytecode compilation failed: {err}"
+                        return context
             else:
                 context.is_compilable = False
                 context.compile_error = "No pom.xml found to compile bytecode."
@@ -186,12 +207,49 @@ class RepoManager:
         return context
 
     @classmethod
+    def fallback_compile(cls, repo_dir: Path) -> bool:
+        """
+        Fallback direct javac compilation when Maven fails due to modern JDK incompatibilities
+        (e.g., OpenJDK 26 compiling legacy Java 7 / -Werror settings).
+        """
+        try:
+            src_dirs = list(repo_dir.glob("**/src/main/java"))
+            if not src_dirs:
+                return False
+            for src_dir in src_dirs:
+                # Target dir is <submodule>/target/classes
+                module_dir = src_dir.parent.parent.parent
+                target_dir = module_dir / "target" / "classes"
+                target_dir.mkdir(parents=True, exist_ok=True)
+                java_files = [str(f) for f in src_dir.rglob("*.java") if f.name != "module-info.java"]
+                gen_dir = module_dir / "target" / "generated-sources"
+                if gen_dir.exists():
+                    java_files.extend([str(f) for f in gen_dir.rglob("*.java") if f.name != "module-info.java"])
+                if not java_files:
+                    continue
+                sources_file = target_dir / "sources_fallback.tmp"
+                sources_file.write_text("\n".join(java_files), encoding="utf-8")
+                # Try with --release 8 first, then standard javac
+                cmd_8 = ["javac", "--release", "8", "-d", str(target_dir), f"@{sources_file}"]
+                res = subprocess.run(cmd_8, capture_output=True, text=True, cwd=repo_dir, timeout=120)
+                if res.returncode != 0:
+                    cmd_std = ["javac", "-d", str(target_dir), f"@{sources_file}"]
+                    subprocess.run(cmd_std, capture_output=True, text=True, cwd=repo_dir, timeout=120)
+                if sources_file.exists():
+                    sources_file.unlink()
+            return True
+        except Exception:
+            return False
+
+    @classmethod
     def find_target_classes(cls, repo_dir: Path) -> List[Path]:
         """
-        Finds all target/classes directories (including multi-module Maven projects).
+        Finds all target/classes directories containing actual compiled .class files.
         """
         dirs = []
         for p in repo_dir.glob("**/target/classes"):
-            if p.is_dir() and any(p.iterdir()):
+            if "/src/target/classes" in str(p):
+                continue
+            if p.is_dir() and any(p.rglob("*.class")):
                 dirs.append(p)
         return dirs
