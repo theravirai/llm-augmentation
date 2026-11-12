@@ -40,6 +40,7 @@ python3 -m llm_augmentation.cli run -c <CONDITION> -t <TASK_ID> [options]
 | `--dataset` | `-d` | Path | `None` | Optional specific dataset JSON to load from. |
 | `--output-dir` | `-o` | Path | `results/single_runs/cond_<C>/<task_id>` | Directory where evaluation logs, reports, and traces are saved. |
 | `--target-dir` | | Path | `None` | Path to compiled bytecode (`target/classes`). Overrides auto-detection. |
+| `--refresh-facts` | `-r` | Flag | `False` | Force re-extraction of precomputed static facts for Condition B (bypasses cache in `datasets/precomputed_facts/`). |
 
 ### Concrete Examples
 
@@ -139,12 +140,16 @@ python3 -m llm_augmentation.cli compare -t <TASK_ID> [options]
 | `--task` | `-t` | String | *Required* | SWE-Bench instance ID to compare. |
 | `--model` | `-m` | String | `gpt-oss-120b` | LLM model identifier. |
 | `--output-dir` | `-o` | Path | `results/comparisons/<task_id>` | Directory where comparison Markdown report, condition reports, and traces are saved. |
+| `--refresh-facts` | `-r` | Flag | `False` | Force re-extraction of precomputed static facts for Condition B (bypasses cache in `datasets/precomputed_facts/`). |
 
 ### Concrete Examples
 
 ```bash
 # Compare Conditions A, B, and C on Google Gson #2158
 python3 -m llm_augmentation.cli compare -t google__gson-2158
+
+# Compare Conditions A, B, and C forcing fresh static facts re-extraction for Condition B
+python3 -m llm_augmentation.cli compare -t google__gson-2158 -r
 
 # Compare Conditions A, B, and C on Google Gson #1014
 python3 -m llm_augmentation.cli compare -t google__gson-1014

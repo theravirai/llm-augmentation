@@ -49,12 +49,14 @@ Your final response MUST conclude with a JSON block in the following exact forma
         model: str = "gpt-oss-120b",
         gateway: Optional[LLMGateway] = None,
         sootup_engine_dir: Optional[Path | str] = None,
-        max_iterations: int = 5
+        max_iterations: int = 5,
+        refresh_facts: bool = False
     ):
         super().__init__(model=model)
         self.gateway = gateway or LLMGateway(default_model=model)
         self.sootup_engine_dir = Path(sootup_engine_dir) if sootup_engine_dir else Path(__file__).resolve().parent.parent.parent / "sootup_engine"
         self.max_iterations = max_iterations
+        self.refresh_facts = refresh_facts
 
     def run(self, task: Task, repo_context: RepoContext) -> LocalizationResult:
         start_time = time.time()
@@ -202,26 +204,34 @@ Produce your localization diagnosis in the required JSON format.
         """
         Loads precomputed Ahead-of-Time (AOT) static analysis facts for Condition B.
         Checks for cached static facts in datasets/precomputed_facts/{task_id}.txt.
+        If self.refresh_facts is True, bypasses cache and forces re-extraction using SootUp.
         If not yet generated, extracts them via direct standalone Java SootUpAnalyzer CLI
         (pure bytecode analysis, zero MCP / zero JSON-RPC) and caches them on disk.
         """
-        precomputed_file = Path("datasets/precomputed_facts") / f"{task.instance_id}.txt"
-        if precomputed_file.exists():
+        base_dir = Path(__file__).resolve().parent.parent.parent
+        precomputed_file = base_dir / "datasets" / "precomputed_facts" / f"{task.instance_id}.txt"
+
+        if not self.refresh_facts and precomputed_file.exists():
             try:
-                return precomputed_file.read_text(encoding="utf-8")
+                content = precomputed_file.read_text(encoding="utf-8").strip()
+                if content and not content.startswith("[No"):
+                    return content
             except Exception:
                 pass
+        elif self.refresh_facts:
+            print(f"  -> [Condition B] Force-refreshing static facts for {task.instance_id} via SootUp...", flush=True)
 
         if not repo_context.target_classes_dirs:
             return "[No compiled bytecode target/classes available for static fact extraction.]"
 
         facts = self._run_offline_sootup_extractor(task, repo_context)
-        if facts:
+        if facts and not facts.startswith("["):
             try:
                 precomputed_file.parent.mkdir(parents=True, exist_ok=True)
                 precomputed_file.write_text(facts, encoding="utf-8")
-            except Exception:
-                pass
+                print(f"  -> [Condition B] Successfully saved refreshed facts to {precomputed_file.name}", flush=True)
+            except Exception as e:
+                print(f"  -> [Condition B] Warning: Failed to write refreshed facts to disk: {e}", flush=True)
 
         return facts if facts else "[No matching static facts extracted for identified types.]"
 

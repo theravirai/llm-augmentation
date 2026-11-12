@@ -1,0 +1,159 @@
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.FieldNamingPolicy
+
+Superclasses:
+ - java.lang.Enum
+ - java.lang.Object
+
+Subclasses:
+ - com.google.gson.FieldNamingPolicy$5 (declared inside com.google.gson.FieldNamingPolicy)
+ - com.google.gson.FieldNamingPolicy$3 (declared inside com.google.gson.FieldNamingPolicy)
+ - com.google.gson.FieldNamingPolicy$1 (declared inside com.google.gson.FieldNamingPolicy)
+ - com.google.gson.FieldNamingPolicy$6 (declared inside com.google.gson.FieldNamingPolicy)
+ - com.google.gson.FieldNamingPolicy$4 (declared inside com.google.gson.FieldNamingPolicy)
+ - com.google.gson.FieldNamingPolicy$2 (declared inside com.google.gson.FieldNamingPolicy)
+
+Implemented Interfaces:
+ - com.google.gson.FieldNamingStrategy
+ - java.lang.constant.Constable
+ - java.lang.Comparable
+ - java.io.Serializable
+
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.Gson$1
+
+Superclasses:
+ - com.google.gson.TypeAdapter
+ - java.lang.Object
+
+Subclasses:
+ (None)
+
+Implemented Interfaces:
+
+=== ALLOCATION SITE FACT ===
+Target Class: com.google.gson.Gson$1
+
+Match Found:
+ - Allocates: com.google.gson.Gson$1
+ - Enclosing Method: <com.google.gson.Gson: com.google.gson.TypeAdapter doubleAdapter(boolean)>
+ - Source Line: 344
+ - Jimple Stmt: $stack2 = new com.google.gson.Gson$1
+
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.Gson$2
+
+Superclasses:
+ - com.google.gson.TypeAdapter
+ - java.lang.Object
+
+Subclasses:
+ (None)
+
+Implemented Interfaces:
+
+=== ALLOCATION SITE FACT ===
+Target Class: com.google.gson.Gson$2
+
+Match Found:
+ - Allocates: com.google.gson.Gson$2
+ - Enclosing Method: <com.google.gson.Gson: com.google.gson.TypeAdapter floatAdapter(boolean)>
+ - Source Line: 368
+ - Jimple Stmt: $stack2 = new com.google.gson.Gson$2
+
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.GsonBuilder
+
+Superclasses:
+ - java.lang.Object
+
+Subclasses:
+ (None)
+
+Implemented Interfaces:
+
+=== ALLOCATION SITE FACT ===
+Target Class: com.google.gson.GsonBuilder
+
+Match Found:
+ - Allocates: com.google.gson.GsonBuilder
+ - Enclosing Method: <com.google.gson.metrics.ParseBenchmark$GsonBindParser: void <clinit>()>
+ - Source Line: 271
+ - Jimple Stmt: $stack0 = new com.google.gson.GsonBuilder
+
+Match Found:
+ - Allocates: com.google.gson.GsonBuilder
+ - Enclosing Method: <com.google.gson.metrics.SerializationBenchmark: void setUp()>
+ - Source Line: 43
+ - Jimple Stmt: $stack4 = new com.google.gson.GsonBuilder
+
+Match Found:
+ - Allocates: com.google.gson.GsonBuilder
+ - Enclosing Method: <com.google.gson.Gson: com.google.gson.GsonBuilder newBuilder()>
+ - Source Line: 299
+ - Jimple Stmt: $stack1 = new com.google.gson.GsonBuilder
+
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.TypeAdapter
+
+Superclasses:
+ - java.lang.Object
+
+Subclasses:
+ - com.google.gson.Gson$5 (declared inside com.google.gson.Gson)
+ - com.google.gson.Gson$FutureTypeAdapter (declared inside com.google.gson.Gson)
+ - com.google.gson.Gson$3 (declared inside com.google.gson.Gson)
+ - com.google.gson.Gson$1 (declared inside com.google.gson.Gson)
+ - com.google.gson.TypeAdapter$1 (declared inside com.google.gson.TypeAdapter)
+ - com.google.gson.Gson$4 (declared inside com.google.gson.Gson)
+ - com.google.gson.internal.Excluder$1 (declared inside com.google.gson.internal.Excluder)
+ - com.google.gson.internal.bind.TreeTypeAdapter
+ - com.google.gson.internal.bind.TypeAdapters$8 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.ObjectTypeAdapter
+ - com.google.gson.internal.bind.TypeAdapters$13 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$11 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapterRuntimeTypeWrapper
+ - com.google.gson.internal.bind.DateTypeAdapter
+ - com.google.gson.internal.bind.TypeAdapters$15 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$17 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.NumberTypeAdapter
+ - com.google.gson.internal.bind.TypeAdapters$EnumTypeAdapter (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$Adapter (declared inside com.google.gson.internal.bind.ReflectiveTypeAdapterFactory)
+ - com.google.gson.internal.bind.TypeAdapters$10 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$9 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$12 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$16 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$14 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$25 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$18 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$3 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$1 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter (declared inside com.google.gson.internal.bind.MapTypeAdapterFactory)
+ - com.google.gson.internal.bind.TypeAdapters$27 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$33$1 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$23 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$5 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.DefaultDateTypeAdapter
+ - com.google.gson.internal.bind.TypeAdapters$7 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$21 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$26 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$19 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.CollectionTypeAdapterFactory$Adapter (declared inside com.google.gson.internal.bind.CollectionTypeAdapterFactory)
+ - com.google.gson.internal.bind.TypeAdapters$24 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$2 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$6 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$20 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$22 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.TypeAdapters$4 (declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.internal.bind.ArrayTypeAdapter
+ - com.google.gson.internal.sql.SqlTimestampTypeAdapter
+ - com.google.gson.internal.sql.SqlDateTypeAdapter
+ - com.google.gson.internal.sql.SqlTimeTypeAdapter
+ - com.google.gson.Gson$2 (declared inside com.google.gson.Gson)
+ - com.google.gson.interceptors.InterceptorFactory$InterceptorAdapter (declared inside com.google.gson.interceptors.InterceptorFactory)
+ - com.google.gson.graph.GraphAdapterBuilder$Factory$1 (declared inside com.google.gson.graph.GraphAdapterBuilder)
+ - com.google.gson.typeadapters.RuntimeTypeAdapterFactory$1 (declared inside com.google.gson.typeadapters.RuntimeTypeAdapterFactory)
+ - com.google.gson.typeadapters.UtcDateTypeAdapter
+ - com.google.gson.typeadapters.PostConstructAdapterFactory$PostConstructAdapter (declared inside com.google.gson.typeadapters.PostConstructAdapterFactory)
+
+Implemented Interfaces:

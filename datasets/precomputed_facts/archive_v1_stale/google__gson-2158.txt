@@ -1,0 +1,56 @@
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.TypeAdapter
+
+Superclasses:
+ - java.lang.Object
+
+Subclasses:
+ - com.google.gson.internal.bind.TypeAdapters$* (Multiple anonymous classes declared inside com.google.gson.internal.bind.TypeAdapters)
+ - com.google.gson.Gson$1 (declared inside com.google.gson.Gson)
+ - com.google.gson.Gson$2 (declared inside com.google.gson.Gson)
+ - com.google.gson.Gson$3 (declared inside com.google.gson.Gson)
+ - com.google.gson.Gson$4 (declared inside com.google.gson.Gson)
+ - com.google.gson.Gson$5 (declared inside com.google.gson.Gson)
+
+=== METHOD INSPECTION FACT ===
+Signature: <com.google.gson.Gson$1: void write(com.google.gson.stream.JsonWriter,java.lang.Number)>
+Declaring Class: com.google.gson.Gson$1
+Outer Class: com.google.gson.Gson
+Source File: gson/src/main/java/com/google/gson/Gson.java
+
+Jimple Body:
+[Line 403] value := @parameter1: java.lang.Number
+[Line 407] doubleValue = virtualinvoke value.<java.lang.Number: double doubleValue()>()
+[Line 408] staticinvoke <com.google.gson.Gson: void checkValidFloatingPoint(double)>(doubleValue)
+[Line 409] virtualinvoke out.<com.google.gson.stream.JsonWriter: com.google.gson.stream.JsonWriter value(java.lang.Number)>(value)
+
+=== ALLOCATION SITE FACT ===
+Target Class: com.google.gson.Gson$1
+Scope Class: com.google.gson.Gson
+
+Match Found:
+ - Allocates: com.google.gson.Gson$1
+ - Enclosing Method: <com.google.gson.Gson: com.google.gson.TypeAdapter doubleAdapter(boolean)>
+ - Source Line: 394
+ - Jimple Stmt: $stack2 = new com.google.gson.Gson$1
+
+=== METHOD INSPECTION FACT ===
+Signature: <com.google.gson.Gson$2: void write(com.google.gson.stream.JsonWriter,java.lang.Number)>
+Declaring Class: com.google.gson.Gson$2
+Outer Class: com.google.gson.Gson
+Source File: gson/src/main/java/com/google/gson/Gson.java
+
+Jimple Body:
+[Line 427] value := @parameter1: java.lang.Number
+[Line 431] floatValue = virtualinvoke value.<java.lang.Number: float floatValue()>()
+[Line 433] virtualinvoke out.<com.google.gson.stream.JsonWriter: com.google.gson.stream.JsonWriter value(java.lang.Number)>(value)
+
+=== ALLOCATION SITE FACT ===
+Target Class: com.google.gson.Gson$2
+Scope Class: com.google.gson.Gson
+
+Match Found:
+ - Allocates: com.google.gson.Gson$2
+ - Enclosing Method: <com.google.gson.Gson: com.google.gson.TypeAdapter floatAdapter(boolean)>
+ - Source Line: 418
+ - Jimple Stmt: $stack2 = new com.google.gson.Gson$2

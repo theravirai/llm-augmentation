@@ -1,0 +1,168 @@
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.DefaultDateTypeAdapter
+
+Superclasses:
+ - com.google.gson.TypeAdapter
+ - java.lang.Object
+
+Subclasses:
+ (None)
+
+Implemented Interfaces:
+
+=== ALLOCATION SITE FACT ===
+Target Class: com.google.gson.DefaultDateTypeAdapter
+
+Match Found:
+ - Allocates: com.google.gson.DefaultDateTypeAdapter
+ - Enclosing Method: <com.google.gson.GsonBuilder: void addTypeAdaptersForDate(java.lang.String,int,int,java.util.List)>
+ - Source Line: 585
+ - Jimple Stmt: $stack17 = new com.google.gson.DefaultDateTypeAdapter
+
+Match Found:
+ - Allocates: com.google.gson.DefaultDateTypeAdapter
+ - Enclosing Method: <com.google.gson.GsonBuilder: void addTypeAdaptersForDate(java.lang.String,int,int,java.util.List)>
+ - Source Line: 586
+ - Jimple Stmt: $stack18 = new com.google.gson.DefaultDateTypeAdapter
+
+Match Found:
+ - Allocates: com.google.gson.DefaultDateTypeAdapter
+ - Enclosing Method: <com.google.gson.GsonBuilder: void addTypeAdaptersForDate(java.lang.String,int,int,java.util.List)>
+ - Source Line: 587
+ - Jimple Stmt: $stack19 = new com.google.gson.DefaultDateTypeAdapter
+
+Match Found:
+ - Allocates: com.google.gson.DefaultDateTypeAdapter
+ - Enclosing Method: <com.google.gson.GsonBuilder: void addTypeAdaptersForDate(java.lang.String,int,int,java.util.List)>
+ - Source Line: 589
+ - Jimple Stmt: $stack8 = new com.google.gson.DefaultDateTypeAdapter
+
+Match Found:
+ - Allocates: com.google.gson.DefaultDateTypeAdapter
+ - Enclosing Method: <com.google.gson.GsonBuilder: void addTypeAdaptersForDate(java.lang.String,int,int,java.util.List)>
+ - Source Line: 590
+ - Jimple Stmt: $stack9 = new com.google.gson.DefaultDateTypeAdapter
+
+Match Found:
+ - Allocates: com.google.gson.DefaultDateTypeAdapter
+ - Enclosing Method: <com.google.gson.GsonBuilder: void addTypeAdaptersForDate(java.lang.String,int,int,java.util.List)>
+ - Source Line: 591
+ - Jimple Stmt: $stack10 = new com.google.gson.DefaultDateTypeAdapter
+
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.Gson
+
+Superclasses:
+ - java.lang.Object
+
+Subclasses:
+ (None)
+
+Implemented Interfaces:
+
+=== ALLOCATION SITE FACT ===
+Target Class: com.google.gson.Gson
+
+Match Found:
+ - Allocates: com.google.gson.Gson
+ - Enclosing Method: <com.google.gson.metrics.SerializationBenchmark: void setUp()>
+ - Source Line: 43
+ - Jimple Stmt: $stack2 = new com.google.gson.Gson
+
+Match Found:
+ - Allocates: com.google.gson.Gson
+ - Enclosing Method: <com.google.gson.metrics.BagOfPrimitivesDeserializationBenchmark: void setUp()>
+ - Source Line: 43
+ - Jimple Stmt: $stack2 = new com.google.gson.Gson
+
+Match Found:
+ - Allocates: com.google.gson.Gson
+ - Enclosing Method: <com.google.gson.metrics.CollectionsDeserializationBenchmark: void setUp()>
+ - Source Line: 47
+ - Jimple Stmt: $stack3 = new com.google.gson.Gson
+
+Match Found:
+ - Allocates: com.google.gson.Gson
+ - Enclosing Method: <DummyMain: void main(java.lang.String[])>
+ - Source Line: 5
+ - Jimple Stmt: $stack3 = new com.google.gson.Gson
+
+Match Found:
+ - Allocates: com.google.gson.Gson
+ - Enclosing Method: <com.google.gson.GsonBuilder: com.google.gson.Gson create()>
+ - Source Line: 572
+ - Jimple Stmt: $stack27 = new com.google.gson.Gson
+
+Match Found:
+ - Allocates: com.google.gson.Gson
+ - Enclosing Method: <com.google.gson.extras.examples.rawcollections.RawCollectionsExample: void main(java.lang.String[])>
+ - Source Line: 41
+ - Jimple Stmt: $stack8 = new com.google.gson.Gson
+
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.Gson$1
+
+Superclasses:
+ - com.google.gson.TypeAdapter
+ - java.lang.Object
+
+Subclasses:
+ (None)
+
+Implemented Interfaces:
+
+=== ALLOCATION SITE FACT ===
+Target Class: com.google.gson.Gson$1
+
+Match Found:
+ - Allocates: com.google.gson.Gson$1
+ - Enclosing Method: <com.google.gson.Gson: com.google.gson.TypeAdapter doubleAdapter(boolean)>
+ - Source Line: 278
+ - Jimple Stmt: $stack2 = new com.google.gson.Gson$1
+
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.Gson$2
+
+Superclasses:
+ - com.google.gson.TypeAdapter
+ - java.lang.Object
+
+Subclasses:
+ (None)
+
+Implemented Interfaces:
+
+=== ALLOCATION SITE FACT ===
+Target Class: com.google.gson.Gson$2
+
+Match Found:
+ - Allocates: com.google.gson.Gson$2
+ - Enclosing Method: <com.google.gson.Gson: com.google.gson.TypeAdapter floatAdapter(boolean)>
+ - Source Line: 302
+ - Jimple Stmt: $stack2 = new com.google.gson.Gson$2
+
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.GsonBuilder
+
+Superclasses:
+ - java.lang.Object
+
+Subclasses:
+ (None)
+
+Implemented Interfaces:
+
+=== ALLOCATION SITE FACT ===
+Target Class: com.google.gson.GsonBuilder
+
+Match Found:
+ - Allocates: com.google.gson.GsonBuilder
+ - Enclosing Method: <com.google.gson.metrics.ParseBenchmark$GsonBindParser: void <clinit>()>
+ - Source Line: 271
+ - Jimple Stmt: $stack0 = new com.google.gson.GsonBuilder
+
+Match Found:
+ - Allocates: com.google.gson.GsonBuilder
+ - Enclosing Method: <com.google.gson.metrics.SerializationBenchmark: void setUp()>
+ - Source Line: 43
+ - Jimple Stmt: $stack4 = new com.google.gson.GsonBuilder

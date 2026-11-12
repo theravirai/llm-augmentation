@@ -1,0 +1,41 @@
+=== ALLOCATION SITE FACT ===
+Target Class: com.google.gson.Gson
+
+Match Found:
+ - Allocates: com.google.gson.Gson
+ - Enclosing Method: <com.google.gson.extras.examples.rawcollections.RawCollectionsExample: void main(java.lang.String[])>
+ - Source Line: 41
+ - Jimple Stmt: $stack8 = new com.google.gson.Gson
+
+Match Found:
+ - Allocates: com.google.gson.Gson
+ - Enclosing Method: <com.google.gson.metrics.SerializationBenchmark: void setUp()>
+ - Source Line: 43
+ - Jimple Stmt: $stack2 = new com.google.gson.Gson
+
+Match Found:
+ - Allocates: com.google.gson.Gson
+ - Enclosing Method: <com.google.gson.metrics.CollectionsDeserializationBenchmark: void setUp()>
+ - Source Line: 47
+ - Jimple Stmt: $stack3 = new com.google.gson.Gson
+
+Match Found:
+ - Allocates: com.google.gson.Gson
+ - Enclosing Method: <com.google.gson.metrics.BagOfPrimitivesDeserializationBenchmark: void setUp()>
+ - Source Line: 43
+ - Jimple Stmt: $stack2 = new com.google.gson.Gson
+
+=== ALLOCATION SITE FACT ===
+Target Class: com.google.gson.GsonBuilder
+
+Match Found:
+ - Allocates: com.google.gson.GsonBuilder
+ - Enclosing Method: <com.google.gson.metrics.ParseBenchmark$GsonBindParser: void <clinit>()>
+ - Source Line: 271
+ - Jimple Stmt: $stack0 = new com.google.gson.GsonBuilder
+
+Match Found:
+ - Allocates: com.google.gson.GsonBuilder
+ - Enclosing Method: <com.google.gson.metrics.SerializationBenchmark: void setUp()>
+ - Source Line: 43
+ - Jimple Stmt: $stack4 = new com.google.gson.GsonBuilder

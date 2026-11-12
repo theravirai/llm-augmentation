@@ -59,6 +59,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Path to compiled target classes directory (overrides auto-detection)"
     )
+    run_parser.add_argument(
+        "-r", "--refresh-facts",
+        action="store_true",
+        help="Force re-extraction of precomputed static facts for Condition B (bypasses cache in datasets/precomputed_facts/)"
+    )
 
     # Subcommand: benchmark
     bench_parser = subparsers.add_parser("benchmark", help="Run automated benchmark batch without human intervention")
@@ -95,6 +100,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Limit number of tasks to run (useful for quick dry runs)"
     )
+    bench_parser.add_argument(
+        "-r", "--refresh-facts",
+        action="store_true",
+        help="Force re-extraction of precomputed static facts for Condition B (bypasses cache in datasets/precomputed_facts/)"
+    )
 
     # Subcommand: compare
     comp_parser = subparsers.add_parser("compare", help="Compare Conditions A, B, and C on a task")
@@ -112,6 +122,11 @@ def build_parser() -> argparse.ArgumentParser:
         "-o", "--output-dir",
         default=None,
         help="Directory to store comparative report (defaults to results/comparisons/{task_id})"
+    )
+    comp_parser.add_argument(
+        "-r", "--refresh-facts",
+        action="store_true",
+        help="Force re-extraction of precomputed static facts for Condition B (bypasses cache in datasets/precomputed_facts/)"
     )
 
     # Subcommand: tools (Direct MCP tool execution utility)
@@ -132,7 +147,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     return parser
 
-def get_agent(condition: str, model: str, config: Dict):
+def get_agent(condition: str, model: str, config: Dict, refresh_facts: bool = False):
     cond = condition.upper()
     engine_dir = Path(__file__).resolve().parent.parent / config["paths"]["sootup_engine_dir"]
     gateway = LLMGateway(default_model=model)
@@ -141,7 +156,13 @@ def get_agent(condition: str, model: str, config: Dict):
     if cond == "A":
         return ConditionAAgent(model=model, gateway=gateway, max_iterations=max_iter)
     elif cond == "B":
-        return ConditionBAgent(model=model, gateway=gateway, sootup_engine_dir=engine_dir, max_iterations=max_iter)
+        return ConditionBAgent(
+            model=model,
+            gateway=gateway,
+            sootup_engine_dir=engine_dir,
+            max_iterations=max_iter,
+            refresh_facts=refresh_facts
+        )
     elif cond == "C":
         return ConditionCAgent(model=model, gateway=gateway, sootup_engine_dir=engine_dir, max_iterations=max_iter)
     else:
@@ -164,11 +185,12 @@ def handle_run(args, config):
     print(f"{'='*70}")
 
     repo_manager = RepoManager()
-    repo_context = repo_manager.prepare_repo_for_task(task, checkout=True, compile_if_needed=False)
+    repo_context = repo_manager.prepare_repo_for_task(task, checkout=True, compile_if_needed=True)
     if args.target_dir:
         repo_context.target_classes_dirs = [Path(args.target_dir).resolve()]
 
-    agent = get_agent(condition, model, config)
+    refresh = getattr(args, "refresh_facts", False)
+    agent = get_agent(condition, model, config, refresh_facts=refresh)
     res = agent.run(task, repo_context)
 
     # Evaluate against developer Gold Patch
@@ -220,12 +242,13 @@ def handle_benchmark(args, config):
     print(f"{'='*70}\n")
 
     repo_manager = RepoManager()
-    agent = get_agent(condition, model, config)
+    refresh = getattr(args, "refresh_facts", False)
+    agent = get_agent(condition, model, config, refresh_facts=refresh)
     reports: List[EvaluationReport] = []
 
     for i, task in enumerate(tasks, start=1):
         print(f"[{i}/{len(tasks)}] Evaluating {task.instance_id} ({task.repo})...", end="", flush=True)
-        repo_context = repo_manager.prepare_repo_for_task(task, compile_if_needed=False)
+        repo_context = repo_manager.prepare_repo_for_task(task, compile_if_needed=True)
 
         try:
             res = agent.run(task, repo_context)
@@ -269,12 +292,13 @@ def handle_compare(args, config):
     print(f"{'='*70}\n")
 
     repo_manager = RepoManager()
-    repo_context = repo_manager.prepare_repo_for_task(task, checkout=True, compile_if_needed=False)
+    repo_context = repo_manager.prepare_repo_for_task(task, checkout=True, compile_if_needed=True)
 
+    refresh = getattr(args, "refresh_facts", False)
     reports: Dict[str, EvaluationReport] = {}
     for cond in ["A", "B", "C"]:
         print(f"[*] Running Condition {cond}...", flush=True)
-        agent = get_agent(cond, model, config)
+        agent = get_agent(cond, model, config, refresh_facts=refresh)
         res = agent.run(task, repo_context)
         rep = Evaluator.evaluate_task(res, task, repo_context)
         reports[cond] = rep

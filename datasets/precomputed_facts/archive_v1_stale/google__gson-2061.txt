@@ -1,0 +1,38 @@
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.stream.JsonReader
+
+Superclasses:
+ - java.lang.Object
+
+Subclasses:
+ - com.google.gson.internal.bind.JsonTreeReader
+
+Implemented Interfaces:
+ - java.io.Closeable
+ - java.lang.AutoCloseable
+
+=== METHOD INSPECTION FACT ===
+Signature: <com.google.gson.internal.bind.JsonTreeReader: boolean hasNext()>
+Declaring Class: com.google.gson.internal.bind.JsonTreeReader
+Outer Class: None
+Source File: gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java
+
+Jimple Body:
+[Line 101] token = virtualinvoke this.<com.google.gson.internal.bind.JsonTreeReader: com.google.gson.stream.JsonToken peek()>()
+[Line 102] if token == <com.google.gson.stream.JsonToken: com.google.gson.stream.JsonToken END_OBJECT> goto label1
+[Line 102] if token == <com.google.gson.stream.JsonToken: com.google.gson.stream.JsonToken END_ARRAY> goto label1
+[Line 102] return 1
+label1:
+[Line 102] return 0
+
+=== METHOD INSPECTION FACT ===
+Signature: <com.google.gson.stream.JsonReader: boolean hasNext()>
+Declaring Class: com.google.gson.stream.JsonReader
+Outer Class: None
+Source File: gson/src/main/java/com/google/gson/stream/JsonReader.java
+
+Jimple Body:
+[Line 413] if p != PEEKED_END_OBJECT && p != PEEKED_END_ARRAY goto label1
+[Line 413] return 0
+label1:
+[Line 413] return 1
