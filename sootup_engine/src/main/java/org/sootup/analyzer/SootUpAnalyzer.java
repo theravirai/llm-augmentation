@@ -83,6 +83,51 @@ public class SootUpAnalyzer {
         return matched.map(c -> factory.getClassType(c.getName())).orElse(classType);
     }
 
+    private String findAllocatingMethod(String innerClassName, String outerClassName) {
+        JavaClassType outerType = resolveClassType(outerClassName);
+        Optional<JavaSootClass> outerOpt = view.getClass(outerType);
+        if (!outerOpt.isPresent()) return null;
+        for (SootMethod method : outerOpt.get().getMethods()) {
+            if (!method.hasBody()) continue;
+            for (Stmt stmt : method.getBody().getStmts()) {
+                if (stmt instanceof JAssignStmt) {
+                    JAssignStmt assign = (JAssignStmt) stmt;
+                    if (assign.getRightOp() instanceof JNewExpr) {
+                        JNewExpr newExpr = (JNewExpr) assign.getRightOp();
+                        String typeStr = newExpr.getType().toString();
+                        if (typeStr.equals(innerClassName) || typeStr.endsWith("." + innerClassName)) {
+                            return method.getName();
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private void appendGroupedSubclasses(StringBuilder sb, Collection<ClassType> subclasses) {
+        Map<String, List<String>> byOuter = new TreeMap<>();
+        for (ClassType sc : subclasses) {
+            String name = sc.getFullyQualifiedName();
+            String outer = name.contains("$") ? name.substring(0, name.indexOf('$')) : name;
+            byOuter.computeIfAbsent(outer, k -> new ArrayList<>()).add(name);
+        }
+        sb.append(" (Found ").append(subclasses.size()).append(" subclasses across ").append(byOuter.size()).append(" declaring files/containers):\n");
+        byOuter.forEach((outer, list) -> {
+            sb.append("\n [Declared in file/class: ").append(outer).append("] (").append(list.size()).append(" subclasses):\n");
+            for (String sub : list) {
+                sb.append("   - ").append(sub);
+                if (sub.contains("$")) {
+                    String allocMethod = findAllocatingMethod(sub, outer);
+                    if (allocMethod != null && !allocMethod.equals("<init>") && !allocMethod.equals("<clinit>")) {
+                        sb.append(" (instantiated in method: ").append(allocMethod).append(")");
+                    }
+                }
+                sb.append("\n");
+            }
+        });
+    }
+
     /**
      * Primitive 1: Class Hierarchy
      * Finds superclasses, direct/indirect subclasses, and implemented interfaces.
@@ -123,27 +168,13 @@ public class SootUpAnalyzer {
                     sb.append("\nNOTE: '").append(targetClassName).append("' is a utility container with no direct subclasses.")
                       .append("\nSubclasses of base class '").append(appClass.getName()).append("':\n");
                     JavaClassType baseType = factory.getClassType(appClass.getName());
-                    th.subclassesOf(baseType).forEach(sc -> {
-                        String name = sc.getFullyQualifiedName();
-                        if (name.contains("$")) {
-                            String outer = name.substring(0, name.indexOf('$'));
-                            sb.append(" - ").append(name).append(" (declared inside ").append(outer).append(")\n");
-                        } else {
-                            sb.append(" - ").append(name).append("\n");
-                        }
-                    });
+                    List<ClassType> baseSubclasses = new ArrayList<>();
+                    th.subclassesOf(baseType).forEach(baseSubclasses::add);
+                    appendGroupedSubclasses(sb, baseSubclasses);
                 }
             }
         } else {
-            subclasses.forEach(sc -> {
-                String name = sc.getFullyQualifiedName();
-                if (name.contains("$")) {
-                    String outer = name.substring(0, name.indexOf('$'));
-                    sb.append(" - ").append(name).append(" (declared inside ").append(outer).append(")\n");
-                } else {
-                    sb.append(" - ").append(name).append("\n");
-                }
-            });
+            appendGroupedSubclasses(sb, subclasses);
         }
 
         sb.append("\nImplemented Interfaces:\n");
@@ -236,6 +267,38 @@ public class SootUpAnalyzer {
             sb.append("Scope Class: ").append(scopeClass).append("\n");
         }
 
+        JavaClassType resolvedType = resolveClassType(targetClass);
+        TypeHierarchy th = new ViewTypeHierarchy(view);
+        Set<String> matchTypes = new HashSet<>();
+        matchTypes.add(targetClass);
+        matchTypes.add(resolvedType.getFullyQualifiedName());
+        matchTypes.add(resolvedType.getClassName());
+        if (targetClass.contains(".")) {
+            matchTypes.add(targetClass.substring(targetClass.lastIndexOf('.') + 1));
+        }
+
+        // If targetClass ends with 's' (e.g. TypeAdapters), also resolve to matching base class
+        if (targetClass.endsWith("s")) {
+            String simpleName = targetClass.substring(targetClass.lastIndexOf('.') + 1);
+            String nonPlural = simpleName.substring(0, simpleName.length() - 1);
+            JavaClassType baseType = resolveClassType(nonPlural);
+            matchTypes.add(nonPlural);
+            matchTypes.add(baseType.getFullyQualifiedName());
+            matchTypes.add(baseType.getClassName());
+            th.subclassesOf(baseType).forEach(sc -> {
+                matchTypes.add(sc.getFullyQualifiedName());
+                matchTypes.add(sc.getClassName());
+            });
+        }
+
+        // If targetClass is a base class or interface with subclasses, include all its subtypes
+        if (view.getClass(resolvedType).isPresent()) {
+            th.subclassesOf(resolvedType).forEach(sc -> {
+                matchTypes.add(sc.getFullyQualifiedName());
+                matchTypes.add(sc.getClassName());
+            });
+        }
+
         List<JavaSootClass> classesToScan = getClassesToScan(scopeClass);
         int matchCount = 0;
 
@@ -248,13 +311,16 @@ public class SootUpAnalyzer {
                         if (assign.getRightOp() instanceof JNewExpr) {
                             JNewExpr newExpr = (JNewExpr) assign.getRightOp();
                             String typeStr = newExpr.getType().toString();
-                            boolean match = typeStr.equals(targetClass) || typeStr.endsWith("." + targetClass);
-                            if (!match && newExpr.getType() instanceof ClassType) {
+                            String fqName = "";
+                            String simpleName = "";
+                            if (newExpr.getType() instanceof ClassType) {
                                 ClassType ct = (ClassType) newExpr.getType();
-                                match = ct.getClassName().equals(targetClass)
-                                     || ct.getFullyQualifiedName().equals(targetClass)
-                                     || ct.getFullyQualifiedName().endsWith("." + targetClass);
+                                fqName = ct.getFullyQualifiedName();
+                                simpleName = ct.getClassName();
                             }
+                            boolean match = matchTypes.contains(typeStr)
+                                         || matchTypes.contains(fqName)
+                                         || matchTypes.contains(simpleName);
                             if (match) {
                                 matchCount++;
                                 appendMatch(sb, method, stmt, "Allocates: " + typeStr);
