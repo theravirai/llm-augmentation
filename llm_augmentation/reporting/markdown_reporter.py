@@ -176,11 +176,6 @@ class MarkdownReporter:
                 return "N/A"
             return f"{report.tool_calls_count} ({report.source_tool_calls} Source, {report.mcp_tool_calls} SootUp MCP)"
 
-        commit_val_A = f"`{rA.target_commit}`" if rA and rA.target_commit else "N/A"
-        commit_val_B = f"`{rB.target_commit}`" if rB and rB.target_commit else "N/A"
-        commit_val_C = f"`{rC.target_commit}`" if rC and rC.target_commit else "N/A"
-
-        md.append(f"| **Target Commit** | {commit_val_A} | {commit_val_B} | {commit_val_C} |")
         md.append(f"| **File Recall** | {val(rA, 'file_recall', lambda x: f'{x*100:.0f}%')} | {val(rB, 'file_recall', lambda x: f'{x*100:.0f}%')} | {val(rC, 'file_recall', lambda x: f'{x*100:.0f}%')} |")
         md.append(f"| **File Precision** | {val(rA, 'file_precision', lambda x: f'{x*100:.0f}%')} | {val(rB, 'file_precision', lambda x: f'{x*100:.0f}%')} | {val(rC, 'file_precision', lambda x: f'{x*100:.0f}%')} |")
         md.append(f"| **Exact Match** | {val(rA, 'exact_file_match', lambda x: '✅ Yes' if x else '❌ No')} | {val(rB, 'exact_file_match', lambda x: '✅ Yes' if x else '❌ No')} | {val(rC, 'exact_file_match', lambda x: '✅ Yes' if x else '❌ No')} |")

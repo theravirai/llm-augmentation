@@ -97,7 +97,6 @@ This generates `results/comparisons/google__gson-2158/google__gson-2158_conditio
 
 | Dimension | Condition A (Source Only) | Condition B (Precomputed Facts) | Condition C (On-Demand MCP) |
 | :--- | :--- | :--- | :--- |
-| **Target Commit** | `796193d0326a2f44bc314bf24262732ea3e64014` | `796193d0326a2f44bc314bf24262732ea3e64014` | `796193d0326a2f44bc314bf24262732ea3e64014` |
 | **File Recall** | 50% | 100% | 50% |
 | **File Precision** | 100% | 100% | 100% |
 | **Exact Match** | ❌ No | ✅ Yes | ❌ No |

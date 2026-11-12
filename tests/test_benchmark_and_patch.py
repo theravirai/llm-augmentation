@@ -67,6 +67,34 @@ def test_patch_parser_druid():
 
     print("PatchParser Druid tests passed!")
 
+def test_patch_parser_classification_gson_2479():
+    loader = TaskLoader()
+    task = loader.get_task("google__gson-2479")
+    assert task is not None
+
+    parsed = PatchParser.parse(task.patch)
+    # Check separate categorization:
+    # 1 production Java file (GsonBuilder.java)
+    # 1 documentation file (UserGuide.md)
+    assert len(parsed.production_files) == 1, f"Expected 1 production file, got {len(parsed.production_files)}"
+    assert "GsonBuilder.java" in parsed.production_file_basenames
+    assert len(parsed.documentation_files) == 1, f"Expected 1 doc file, got {len(parsed.documentation_files)}"
+    assert "UserGuide.md" in parsed.documentation_file_basenames
+
+    # Defect localization targets strictly reflect production Java files
+    assert parsed.file_basenames == {"GsonBuilder.java"}
+    assert parsed.is_single_file_scope, "gson-2479 should be classified as single-file localized candidate"
+    assert parsed.scope_label == "Single-file (1)"
+    assert not parsed.is_multi_file_scope
+
+    # Check method names extracted only from Java code
+    assert "registerTypeAdapter" in parsed.method_names
+    assert "registerTypeHierarchyAdapter" in parsed.method_names
+    # Documentation headings should not be mistaken for Java methods
+    assert "MyDeserializer" not in parsed.method_names
+
+    print("PatchParser Gson-2479 classification tests passed!")
+
 def test_repo_manager_gson():
     repo_manager = RepoManager()
     repo_dir = repo_manager.find_repo_dir("google/gson")
