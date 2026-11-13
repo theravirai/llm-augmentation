@@ -1,14 +1,74 @@
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.FieldNamingPolicy
+
+Superclasses:
+ - java.lang.Enum
+ - java.lang.Object
+
+Subclasses:
+ (Found 7 subclasses across 1 declaring files/containers):
+
+ [Declared in file/class: com.google.gson.FieldNamingPolicy] (7 subclasses):
+   - [7 anonymous inner subclasses collapsed: com.google.gson.FieldNamingPolicy$5 .. com.google.gson.FieldNamingPolicy$2]
+
+Implemented Interfaces:
+ - com.google.gson.FieldNamingStrategy
+ - java.lang.constant.Constable
+ - java.lang.Comparable
+ - java.io.Serializable
+
 === ALLOCATION SITE FACT ===
-Target Class: com.google.gson.GsonBuilder
+Target Class: com.google.gson.FieldNamingPolicy
 
 Match Found:
- - Allocates: com.google.gson.GsonBuilder
- - Enclosing Method: <com.google.gson.metrics.ParseBenchmark$GsonBindParser: void <clinit>()>
- - Source Line: 271
- - Jimple Stmt: $stack0 = new com.google.gson.GsonBuilder
+ - Allocates: com.google.gson.FieldNamingPolicy$1
+ - Enclosing Method: <com.google.gson.FieldNamingPolicy: void <clinit>()>
+ - Source Line: 37
+ - Jimple Stmt: $stack0 = new com.google.gson.FieldNamingPolicy$1
 
 Match Found:
- - Allocates: com.google.gson.GsonBuilder
- - Enclosing Method: <com.google.gson.metrics.SerializationBenchmark: void setUp()>
- - Source Line: 43
- - Jimple Stmt: $stack4 = new com.google.gson.GsonBuilder
+ - Allocates: com.google.gson.FieldNamingPolicy$2
+ - Enclosing Method: <com.google.gson.FieldNamingPolicy: void <clinit>()>
+ - Source Line: 53
+ - Jimple Stmt: $stack1 = new com.google.gson.FieldNamingPolicy$2
+
+Match Found:
+ - Allocates: com.google.gson.FieldNamingPolicy$3
+ - Enclosing Method: <com.google.gson.FieldNamingPolicy: void <clinit>()>
+ - Source Line: 72
+ - Jimple Stmt: $stack2 = new com.google.gson.FieldNamingPolicy$3
+
+Match Found:
+ - Allocates: com.google.gson.FieldNamingPolicy$4
+ - Enclosing Method: <com.google.gson.FieldNamingPolicy: void <clinit>()>
+ - Source Line: 92
+ - Jimple Stmt: $stack3 = new com.google.gson.FieldNamingPolicy$4
+
+Match Found:
+ - Allocates: com.google.gson.FieldNamingPolicy$5
+ - Enclosing Method: <com.google.gson.FieldNamingPolicy: void <clinit>()>
+ - Source Line: 110
+ - Jimple Stmt: $stack4 = new com.google.gson.FieldNamingPolicy$5
+
+Match Found:
+ - Allocates: com.google.gson.FieldNamingPolicy$6
+ - Enclosing Method: <com.google.gson.FieldNamingPolicy: void <clinit>()>
+ - Source Line: 134
+ - Jimple Stmt: $stack5 = new com.google.gson.FieldNamingPolicy$6
+
+Match Found:
+ - Allocates: com.google.gson.FieldNamingPolicy$7
+ - Enclosing Method: <com.google.gson.FieldNamingPolicy: void <clinit>()>
+ - Source Line: 158
+ - Jimple Stmt: $stack6 = new com.google.gson.FieldNamingPolicy$7
+
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.Gson
+
+Superclasses:
+ - java.lang.Object
+
+Subclasses:
+ (None)
+
+Implemented Interfaces:

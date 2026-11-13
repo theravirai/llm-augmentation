@@ -1,26 +1,75 @@
-=== ALLOCATION SITE FACT ===
-Target Class: com.google.gson.Gson
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.Gson
 
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <com.google.gson.extras.examples.rawcollections.RawCollectionsExample: void main(java.lang.String[])>
- - Source Line: 41
- - Jimple Stmt: $stack8 = new com.google.gson.Gson
+Superclasses:
+ - java.lang.Object
 
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <com.google.gson.metrics.SerializationBenchmark: void setUp()>
- - Source Line: 43
- - Jimple Stmt: $stack2 = new com.google.gson.Gson
+Subclasses:
+ (None)
 
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <com.google.gson.metrics.CollectionsDeserializationBenchmark: void setUp()>
- - Source Line: 47
- - Jimple Stmt: $stack3 = new com.google.gson.Gson
+Implemented Interfaces:
 
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <com.google.gson.metrics.BagOfPrimitivesDeserializationBenchmark: void setUp()>
- - Source Line: 43
- - Jimple Stmt: $stack2 = new com.google.gson.Gson
+=== METHOD INSPECTION FACT ===
+Signature: <com.google.gson.Gson: void toJson(java.lang.Object,java.lang.reflect.Type,com.google.gson.stream.JsonWriter)>
+Declaring Class: com.google.gson.Gson
+Source File: /Volumes/BrainStorm/Github/SootUp-Store/swebench-java-evaluation/workspace/gson/gson/target/classes/com/google/gson/Gson.class
+
+Jimple Body:
+[Line 813] this := @this: com.google.gson.Gson
+[Line 813] l1 := @parameter0: java.lang.Object
+[Line 813] l2 := @parameter1: java.lang.reflect.Type
+[Line 813] l3 := @parameter2: com.google.gson.stream.JsonWriter
+[Line 813] $stack11 = staticinvoke <com.google.gson.reflect.TypeToken: com.google.gson.reflect.TypeToken get(java.lang.reflect.Type)>(l2)
+[Line 813] l4 = virtualinvoke this.<com.google.gson.Gson: com.google.gson.TypeAdapter getAdapter(com.google.gson.reflect.TypeToken)>($stack11)
+[Line 814] l5 = virtualinvoke l3.<com.google.gson.stream.JsonWriter: boolean isLenient()>()
+[Line 815] virtualinvoke l3.<com.google.gson.stream.JsonWriter: void setLenient(boolean)>(1)
+[Line 816] l6 = virtualinvoke l3.<com.google.gson.stream.JsonWriter: boolean isHtmlSafe()>()
+[Line 817] $stack12 = this.<com.google.gson.Gson: boolean htmlSafe>
+[Line 817] virtualinvoke l3.<com.google.gson.stream.JsonWriter: void setHtmlSafe(boolean)>($stack12)
+[Line 818] l7 = virtualinvoke l3.<com.google.gson.stream.JsonWriter: boolean getSerializeNulls()>()
+[Line 819] $stack13 = this.<com.google.gson.Gson: boolean serializeNulls>
+[Line 819] virtualinvoke l3.<com.google.gson.stream.JsonWriter: void setSerializeNulls(boolean)>($stack13)
+[Line 821] virtualinvoke l4.<com.google.gson.TypeAdapter: void write(com.google.gson.stream.JsonWriter,java.lang.Object)>(l3, l1)
+[Line 829] virtualinvoke l3.<com.google.gson.stream.JsonWriter: void setLenient(boolean)>(l5)
+[Line 830] virtualinvoke l3.<com.google.gson.stream.JsonWriter: void setHtmlSafe(boolean)>(l6)
+[Line 831] virtualinvoke l3.<com.google.gson.stream.JsonWriter: void setSerializeNulls(boolean)>(l7)
+[Line 832] goto
+[Line ?] $stack15 := @caughtexception
+[Line 824] l8 = $stack15
+[Line 825] $stack21 = new java.lang.AssertionError
+[Line 825] $stack16 = new java.lang.StringBuilder
+[Line 825] specialinvoke $stack16.<java.lang.StringBuilder: void <init>()>()
+[Line 825] $stack18 = virtualinvoke $stack16.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>("AssertionError (GSON 2.9.2-SNAPSHOT): ")
+[Line 825] $stack17 = virtualinvoke l8.<java.lang.AssertionError: java.lang.String getMessage()>()
+[Line 825] $stack19 = virtualinvoke $stack18.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>($stack17)
+[Line 825] $stack20 = virtualinvoke $stack19.<java.lang.StringBuilder: java.lang.String toString()>()
+[Line 825] specialinvoke $stack21.<java.lang.AssertionError: void <init>(java.lang.Object)>($stack20)
+[Line 825] l9 = $stack21
+[Line 826] virtualinvoke l9.<java.lang.AssertionError: java.lang.Throwable initCause(java.lang.Throwable)>(l8)
+[Line 827] throw l9
+[Line ?] $stack14 := @caughtexception
+[Line 829] l10 = $stack14
+[Line 829] virtualinvoke l3.<com.google.gson.stream.JsonWriter: void setLenient(boolean)>(l5)
+[Line 830] virtualinvoke l3.<com.google.gson.stream.JsonWriter: void setHtmlSafe(boolean)>(l6)
+[Line 831] virtualinvoke l3.<com.google.gson.stream.JsonWriter: void setSerializeNulls(boolean)>(l7)
+[Line 832] throw l10
+[Line ?] $stack22 := @caughtexception
+[Line 822] l8 = $stack22
+[Line 823] $stack23 = new com.google.gson.JsonIOException
+[Line 823] specialinvoke $stack23.<com.google.gson.JsonIOException: void <init>(java.lang.Throwable)>(l8)
+[Line 823] throw $stack23
+[Line 833] return
+
+=== METHOD INSPECTION FACT ===
+Signature: <com.google.gson.Gson: java.lang.String toJson(com.google.gson.JsonElement)>
+Declaring Class: com.google.gson.Gson
+Source File: /Volumes/BrainStorm/Github/SootUp-Store/swebench-java-evaluation/workspace/gson/gson/target/classes/com/google/gson/Gson.class
+
+Jimple Body:
+[Line 843] this := @this: com.google.gson.Gson
+[Line 843] l1 := @parameter0: com.google.gson.JsonElement
+[Line 843] $stack3 = new java.io.StringWriter
+[Line 843] specialinvoke $stack3.<java.io.StringWriter: void <init>()>()
+[Line 843] l2 = $stack3
+[Line 844] virtualinvoke this.<com.google.gson.Gson: void toJson(com.google.gson.JsonElement,java.lang.Appendable)>(l1, l2)
+[Line 845] $stack4 = virtualinvoke l2.<java.io.StringWriter: java.lang.String toString()>()

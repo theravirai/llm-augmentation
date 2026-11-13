@@ -1,32 +1,4 @@
 === CLASS HIERARCHY FACT ===
-Target: com.google.gson.DefaultDateTypeAdapter
-
-Superclasses:
- - java.lang.Object
-
-Subclasses:
- (None)
-
-Implemented Interfaces:
- - com.google.gson.JsonSerializer
- - com.google.gson.JsonDeserializer
-
-=== ALLOCATION SITE FACT ===
-Target Class: com.google.gson.DefaultDateTypeAdapter
-
-Match Found:
- - Allocates: com.google.gson.DefaultDateTypeAdapter
- - Enclosing Method: <com.google.gson.GsonBuilder: void addTypeAdaptersForDate(java.lang.String,int,int,java.util.List)>
- - Source Line: 579
- - Jimple Stmt: $stack16 = new com.google.gson.DefaultDateTypeAdapter
-
-Match Found:
- - Allocates: com.google.gson.DefaultDateTypeAdapter
- - Enclosing Method: <com.google.gson.GsonBuilder: void addTypeAdaptersForDate(java.lang.String,int,int,java.util.List)>
- - Source Line: 581
- - Jimple Stmt: $stack6 = new com.google.gson.DefaultDateTypeAdapter
-
-=== CLASS HIERARCHY FACT ===
 Target: com.google.gson.Gson
 
 Superclasses:
@@ -36,87 +8,6 @@ Subclasses:
  (None)
 
 Implemented Interfaces:
-
-=== ALLOCATION SITE FACT ===
-Target Class: com.google.gson.Gson
-
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <com.google.gson.GsonBuilder: com.google.gson.Gson create()>
- - Source Line: 569
- - Jimple Stmt: $stack19 = new com.google.gson.Gson
-
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <com.google.gson.extras.examples.rawcollections.RawCollectionsExample: void main(java.lang.String[])>
- - Source Line: 41
- - Jimple Stmt: $stack8 = new com.google.gson.Gson
-
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <DummyMain: void main(java.lang.String[])>
- - Source Line: 5
- - Jimple Stmt: $stack3 = new com.google.gson.Gson
-
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <com.google.gson.metrics.SerializationBenchmark: void setUp()>
- - Source Line: 43
- - Jimple Stmt: $stack2 = new com.google.gson.Gson
-
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <com.google.gson.metrics.CollectionsDeserializationBenchmark: void setUp()>
- - Source Line: 47
- - Jimple Stmt: $stack3 = new com.google.gson.Gson
-
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <com.google.gson.metrics.BagOfPrimitivesDeserializationBenchmark: void setUp()>
- - Source Line: 43
- - Jimple Stmt: $stack2 = new com.google.gson.Gson
-
-=== CLASS HIERARCHY FACT ===
-Target: com.google.gson.Gson$1
-
-Superclasses:
- - com.google.gson.reflect.TypeToken
- - java.lang.Object
-
-Subclasses:
- (None)
-
-Implemented Interfaces:
-
-=== ALLOCATION SITE FACT ===
-Target Class: com.google.gson.Gson$1
-
-Match Found:
- - Allocates: com.google.gson.Gson$1
- - Enclosing Method: <com.google.gson.Gson: void <clinit>()>
- - Source Line: 112
- - Jimple Stmt: $stack0 = new com.google.gson.Gson$1
-
-=== CLASS HIERARCHY FACT ===
-Target: com.google.gson.Gson$2
-
-Superclasses:
- - com.google.gson.TypeAdapter
- - java.lang.Object
-
-Subclasses:
- (None)
-
-Implemented Interfaces:
-
-=== ALLOCATION SITE FACT ===
-Target Class: com.google.gson.Gson$2
-
-Match Found:
- - Allocates: com.google.gson.Gson$2
- - Enclosing Method: <com.google.gson.Gson: com.google.gson.TypeAdapter doubleAdapter(boolean)>
- - Source Line: 278
- - Jimple Stmt: $stack2 = new com.google.gson.Gson$2
 
 === CLASS HIERARCHY FACT ===
 Target: com.google.gson.GsonBuilder
@@ -129,17 +20,56 @@ Subclasses:
 
 Implemented Interfaces:
 
-=== ALLOCATION SITE FACT ===
-Target Class: com.google.gson.GsonBuilder
+=== METHOD INSPECTION FACT ===
+Signature: <com.google.gson.GsonBuilder: com.google.gson.Gson create()>
+Declaring Class: com.google.gson.GsonBuilder
+Source File: /Volumes/BrainStorm/Github/SootUp-Store/swebench-java-evaluation/workspace/gson/gson/target/classes/com/google/gson/GsonBuilder.class
 
-Match Found:
- - Allocates: com.google.gson.GsonBuilder
- - Enclosing Method: <com.google.gson.metrics.ParseBenchmark$GsonBindParser: void <clinit>()>
- - Source Line: 271
- - Jimple Stmt: $stack0 = new com.google.gson.GsonBuilder
-
-Match Found:
- - Allocates: com.google.gson.GsonBuilder
- - Enclosing Method: <com.google.gson.metrics.SerializationBenchmark: void setUp()>
- - Source Line: 43
- - Jimple Stmt: $stack4 = new com.google.gson.GsonBuilder
+Jimple Body:
+[Line 736] this := @this: com.google.gson.GsonBuilder
+[Line 736] $stack9 = new java.util.ArrayList
+[Line 736] $stack3 = this.<com.google.gson.GsonBuilder: java.util.List factories>
+[Line 736] $stack5 = interfaceinvoke $stack3.<java.util.List: int size()>()
+[Line 736] $stack4 = this.<com.google.gson.GsonBuilder: java.util.List hierarchyFactories>
+[Line 736] $stack6 = interfaceinvoke $stack4.<java.util.List: int size()>()
+[Line 736] $stack7 = $stack5 + $stack6
+[Line 736] $stack8 = $stack7 + 3
+[Line 736] specialinvoke $stack9.<java.util.ArrayList: void <init>(int)>($stack8)
+[Line 736] l1 = $stack9
+[Line 737] $stack10 = this.<com.google.gson.GsonBuilder: java.util.List factories>
+[Line 737] interfaceinvoke l1.<java.util.List: boolean addAll(java.util.Collection)>($stack10)
+[Line 738] staticinvoke <java.util.Collections: void reverse(java.util.List)>(l1)
+[Line 740] $stack12 = new java.util.ArrayList
+[Line 740] $stack11 = this.<com.google.gson.GsonBuilder: java.util.List hierarchyFactories>
+[Line 740] specialinvoke $stack12.<java.util.ArrayList: void <init>(java.util.Collection)>($stack11)
+[Line 740] l2 = $stack12
+[Line 741] staticinvoke <java.util.Collections: void reverse(java.util.List)>(l2)
+[Line 742] interfaceinvoke l1.<java.util.List: boolean addAll(java.util.Collection)>(l2)
+[Line 744] $stack15 = this.<com.google.gson.GsonBuilder: java.lang.String datePattern>
+[Line 744] $stack14 = this.<com.google.gson.GsonBuilder: int dateStyle>
+[Line 744] $stack13 = this.<com.google.gson.GsonBuilder: int timeStyle>
+[Line 744] specialinvoke this.<com.google.gson.GsonBuilder: void addTypeAdaptersForDate(java.lang.String,int,int,java.util.List)>($stack15, $stack14, $stack13, l1)
+[Line 746] $stack40 = new com.google.gson.Gson
+[Line 746] $stack18 = this.<com.google.gson.GsonBuilder: com.google.gson.internal.Excluder excluder>
+[Line 746] $stack19 = this.<com.google.gson.GsonBuilder: com.google.gson.FieldNamingStrategy fieldNamingPolicy>
+[Line 746] $stack17 = new java.util.HashMap
+[Line 746] $stack16 = this.<com.google.gson.GsonBuilder: java.util.Map instanceCreators>
+[Line 746] specialinvoke $stack17.<java.util.HashMap: void <init>(java.util.Map)>($stack16)
+[Line 746] $stack22 = this.<com.google.gson.GsonBuilder: boolean serializeNulls>
+[Line 746] $stack23 = this.<com.google.gson.GsonBuilder: boolean complexMapKeySerialization>
+[Line 746] $stack24 = this.<com.google.gson.GsonBuilder: boolean generateNonExecutableJson>
+[Line 746] $stack25 = this.<com.google.gson.GsonBuilder: boolean escapeHtmlChars>
+[Line 746] $stack26 = this.<com.google.gson.GsonBuilder: boolean prettyPrinting>
+[Line 746] $stack27 = this.<com.google.gson.GsonBuilder: boolean lenient>
+[Line 746] $stack28 = this.<com.google.gson.GsonBuilder: boolean serializeSpecialFloatingPointValues>
+[Line 746] $stack29 = this.<com.google.gson.GsonBuilder: boolean useJdkUnsafe>
+[Line 746] $stack30 = this.<com.google.gson.GsonBuilder: com.google.gson.LongSerializationPolicy longSerializationPolicy>
+[Line 746] $stack31 = this.<com.google.gson.GsonBuilder: java.lang.String datePattern>
+[Line 746] $stack32 = this.<com.google.gson.GsonBuilder: int dateStyle>
+[Line 746] $stack33 = this.<com.google.gson.GsonBuilder: int timeStyle>
+[Line 746] $stack21 = new java.util.ArrayList
+[Line 746] $stack20 = this.<com.google.gson.GsonBuilder: java.util.List factories>
+[Line 746] specialinvoke $stack21.<java.util.ArrayList: void <init>(java.util.Collection)>($stack20)
+[Line 746] $stack35 = new java.util.ArrayList
+[Line 746] $stack34 = this.<com.google.gson.GsonBuilder: java.util.List hierarchyFactories>
+[Line 746] specialinvoke $stack35.<java.util.ArrayList: void <init>(java.util.Collection)>($stack34)

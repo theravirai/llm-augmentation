@@ -1,41 +1,44 @@
-=== ALLOCATION SITE FACT ===
-Target Class: com.google.gson.Gson
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.Gson
 
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <com.google.gson.extras.examples.rawcollections.RawCollectionsExample: void main(java.lang.String[])>
- - Source Line: 41
- - Jimple Stmt: $stack8 = new com.google.gson.Gson
+Superclasses:
+ - java.lang.Object
 
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <com.google.gson.metrics.SerializationBenchmark: void setUp()>
- - Source Line: 43
- - Jimple Stmt: $stack2 = new com.google.gson.Gson
+Subclasses:
+ (None)
 
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <com.google.gson.metrics.CollectionsDeserializationBenchmark: void setUp()>
- - Source Line: 47
- - Jimple Stmt: $stack3 = new com.google.gson.Gson
+Implemented Interfaces:
 
-Match Found:
- - Allocates: com.google.gson.Gson
- - Enclosing Method: <com.google.gson.metrics.BagOfPrimitivesDeserializationBenchmark: void setUp()>
- - Source Line: 43
- - Jimple Stmt: $stack2 = new com.google.gson.Gson
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.GsonBuilder
 
-=== ALLOCATION SITE FACT ===
-Target Class: com.google.gson.GsonBuilder
+Superclasses:
+ - java.lang.Object
 
-Match Found:
- - Allocates: com.google.gson.GsonBuilder
- - Enclosing Method: <com.google.gson.metrics.ParseBenchmark$GsonBindParser: void <clinit>()>
- - Source Line: 271
- - Jimple Stmt: $stack0 = new com.google.gson.GsonBuilder
+Subclasses:
+ (None)
 
-Match Found:
- - Allocates: com.google.gson.GsonBuilder
- - Enclosing Method: <com.google.gson.metrics.SerializationBenchmark: void setUp()>
- - Source Line: 43
- - Jimple Stmt: $stack4 = new com.google.gson.GsonBuilder
+Implemented Interfaces:
+
+=== CLASS HIERARCHY FACT ===
+Target: com.google.gson.JsonElement
+
+Superclasses:
+ - java.lang.Object
+
+Subclasses:
+ (Found 4 subclasses across 4 declaring files/containers):
+
+ [Declared in file/class: com.google.gson.JsonArray] (1 subclasses):
+   - com.google.gson.JsonArray
+
+ [Declared in file/class: com.google.gson.JsonNull] (1 subclasses):
+   - com.google.gson.JsonNull
+
+ [Declared in file/class: com.google.gson.JsonObject] (1 subclasses):
+   - com.google.gson.JsonObject
+
+ [Declared in file/class: com.google.gson.JsonPrimitive] (1 subclasses):
+   - com.google.gson.JsonPrimitive
+
+Implemented Interfaces:
