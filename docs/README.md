@@ -9,7 +9,7 @@ This project investigates whether augmenting Large Language Models (LLMs) with w
 
 ## Documentation Index
 
-The documentation is organized into eight specialized guides:
+The documentation is organized into nine specialized guides:
 
 | Guide | Description | Key Topics |
 | :--- | :--- | :--- |
@@ -21,6 +21,7 @@ The documentation is organized into eight specialized guides:
 | [**06. Evaluation & Metrics**](06_evaluation_and_metrics.md) | Mathematical formulation and ground-truth evaluation. | RQ1 accuracy (Recall, Precision, F1, Line proximity, Patch resolution), RQ2 cost metrics, diff parsing logic. |
 | [**07. SootUp Engine & MCP Bridge**](07_sootup_and_mcp_bridge.md) | Bytecode analysis internals and JSON-RPC protocol. | The 5 primitives (`hierarchy`, `inspect-method`, `find-allocations`, `find-invocations`, `callgraph`), MCP stdio protocol. |
 | [**08. Output Reports & Result Interpretation**](08_output_reports_and_interpretation.md) | Artifacts, schemas, and scientific evaluation reporting. | JSON trace schemas, Markdown report tables, batch aggregation, interpreting results for thesis defense. |
+| [**09. End-to-End Execution Walkthrough**](09_end_to_end_execution_walkthrough.md) | Exhaustive runtime trace of `cli compare -t google__gson-2158`. | Chronological function calls, parameter passing, subprocess/MCP lifecycles, and FAQ. |
 
 ---
 

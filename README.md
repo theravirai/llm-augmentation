@@ -162,4 +162,5 @@ For comprehensive technical guides, see the [`docs/`](docs/README.md) directory:
 * [**06. Evaluation Metrics & Ground Truth Specification**](docs/06_evaluation_and_metrics.md)
 * [**07. SootUp Static Analysis Tools & MCP Bridge**](docs/07_sootup_and_mcp_bridge.md)
 * [**08. Output Reports & Result Interpretation**](docs/08_output_reports_and_interpretation.md)
+* [**09. End-to-End Execution Walkthrough (`cli compare`)**](docs/09_end_to_end_execution_walkthrough.md)
 
