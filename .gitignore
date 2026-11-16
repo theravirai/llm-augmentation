@@ -47,6 +47,7 @@ classpath.txt
 results/*
 !results/comparisons/
 !results/comparisons/**
+results/comparisons/**/*version*.md
 .env
 
 # Benchmark Workspace (Target Java Repositories)
