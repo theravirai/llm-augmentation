@@ -1,0 +1,36 @@
+{
+  "task_id": "google__gson-1093",
+  "condition": "B",
+  "model": "gpt-oss-120b",
+  "target_commit": "0aaef0fd1bb1b9729543dc40168adfb829eb75a4",
+  "target_commit_subject": "[maven-release-plugin] prepare for next development iteration",
+  "system_prompt": "You are an expert Java program analysis and defect localization system.\nYou are provided with a real-world bug description AND deterministic static analysis facts extracted from the compiled Java bytecode using the SootUp framework.\n\nYou have access to repository source code inspection and navigation tools:\n- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').\n- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).\n- search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.\n- read_source_file: Reads line ranges from Java source files in the repository.\n\nPay close attention to the bytecode static analysis facts (e.g., class hierarchies, anonymous inner classes, and allocation sites).\nDo not ignore static evidence. Use the source code inspection tools to verify the exact faulty lines and methods.\n\nYour final response MUST conclude with a JSON block in the following exact format:\n```json\n{\n  \"localized_files\": [\"path/to/FaultyFile.java\"],\n  \"localized_classes\": [\"fully.qualified.ClassName\"],\n  \"localized_methods\": [\"fully.qualified.ClassName.methodName\"],\n  \"localized_lines\": {\n    \"path/to/FaultyFile.java\": [123, 124]\n  },\n  \"root_cause_explanation\": \"Detailed explanation of the technical failure mechanism\"\n}\n```\n",
+  "initial_user_prompt": "### Target Repository: google/gson\n### Base Commit: 0aaef0fd1bb1b9729543dc40168adfb829eb75a4\n\n### Problem Statement:\nJsonWriter#value(java.lang.Number) can be lenient, but JsonWriter#value(double) can't,\nIn lenient mode, JsonWriter#value(java.lang.Number) can write pseudo-numeric values like `NaN`, `Infinity`, `-Infinity`:\r\n```java\r\n    if (!lenient\r\n        && (string.equals(\"-Infinity\") || string.equals(\"Infinity\") || string.equals(\"NaN\"))) {\r\n      throw new IllegalArgumentException(\"Numeric values must be finite, but was \" + value);\r\n    }\r\n```\r\n\r\nBut JsonWriter#value(double) behaves in different way: \r\n```java\r\n    if (Double.isNaN(value) || Double.isInfinite(value)) {\r\n      throw new IllegalArgumentException(\"Numeric values must be finite, but was \" + value);\r\n    }\r\n```\r\n\r\nSo, while working with streaming, it's impossible to write semi-numeric value without boxing a double (e. g. `out.value((Number) Double.valueOf(Double.NaN))`).\r\n\r\nI think, this should be possible, because boxing gives worse performance.\n\n\n### Deterministic Static Analysis Facts (SootUp Bytecode Extractor):\n=== CLASS HIERARCHY FACT ===\nTarget: com.google.gson.stream.JsonWriter\n\nSuperclasses:\n - java.lang.Object\n\nSubclasses:\n (Found 1 subclasses across 1 declaring files/containers):\n\n [Declared in file/class: com.google.gson.internal.bind.JsonTreeWriter] (1 subclasses):\n   - com.google.gson.internal.bind.JsonTreeWriter\n\nImplemented Interfaces:\n - java.io.Flushable\n - java.io.Closeable\n - java.lang.AutoCloseable\n\n### Task Instructions:\nAnalyze the Java source code and the deterministic SootUp static analysis facts above.\nUse the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to inspect the relevant classes, methods, and line ranges.\nIdentify all root-cause bug locations, including multi-file links, polymorphic dispatches, and anonymous classes.\nProduce your localization diagnosis in the required JSON format.\n",
+  "rq1_accuracy": {
+    "file_recall": 1.0,
+    "file_precision": 1.0,
+    "file_f1": 1.0,
+    "exact_file_match": true,
+    "method_hit": false,
+    "min_line_distance": 0.0,
+    "exact_line_hit": true,
+    "fault_window_localized": true,
+    "patch_resolved": true,
+    "matched_files": [
+      "gson/src/main/java/com/google/gson/stream/JsonWriter.java"
+    ],
+    "missed_files": [],
+    "spurious_files": [],
+    "matched_methods": []
+  },
+  "rq2_cost": {
+    "tool_calls_count": 4,
+    "source_tool_calls": 4,
+    "mcp_tool_calls": 0,
+    "prompt_tokens": 24254,
+    "completion_tokens": 699,
+    "total_tokens": 24953,
+    "latency_seconds": 10.79,
+    "compilation_status": "OK"
+  }
+}

@@ -43,8 +43,10 @@ classpath.txt
 *~
 .DS_Store
 
-# Results & Logs
-results/
+# Results & Logs (track comparisons directory including reports, evals, and traces across repositories)
+results/*
+!results/comparisons/
+!results/comparisons/**
 .env
 
 # Benchmark Workspace (Target Java Repositories)

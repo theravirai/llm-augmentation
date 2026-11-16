@@ -1,0 +1,39 @@
+{
+  "task_id": "google__gson-2479",
+  "condition": "A",
+  "model": "gpt-oss-120b",
+  "target_commit": "4dfae77af3d543bea2782f85a154cc070290f086",
+  "target_commit_subject": "Bump com.github.siom79.japicmp:japicmp-maven-plugin (#2504)",
+  "system_prompt": "You are an expert Java program analysis and defect localization system.\nYou are tasked with identifying the exact root-cause files, classes, methods, and line ranges for the bug described below.\n\nYou have access to repository source code inspection and navigation tools:\n- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').\n- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).\n- search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.\n- read_source_file: Reads line ranges from Java source files in the repository.\n\nYou MUST rely strictly on the provided problem statement and repository source code.\nDo not guess or hallucinate files or classes not present in the project. Always inspect the relevant code first.\n\nYour final response MUST conclude with a JSON block in the following exact format:\n```json\n{\n  \"localized_files\": [\"path/to/FaultyFile.java\"],\n  \"localized_classes\": [\"fully.qualified.ClassName\"],\n  \"localized_methods\": [\"fully.qualified.ClassName.methodName\"],\n  \"localized_lines\": {\n    \"path/to/FaultyFile.java\": [123, 124]\n  },\n  \"root_cause_explanation\": \"Detailed explanation of the technical failure mechanism\"\n}\n```\n",
+  "initial_user_prompt": "### Target Repository: google/gson\n### Base Commit: 4dfae77af3d543bea2782f85a154cc070290f086\n\n### Problem Statement:\n`GsonBuilder` should throw exception when trying to register adapter for `Object` or `JsonElement`\n# Problem solved by the feature\r\n`GsonBuilder` does not support overwriting the built-in adapters for `Object` and for `JsonElement` (and subclasses). This might not be obvious to users (see #1177).\r\nhttps://github.com/google/gson/blob/6d9c3566b71900c54644a9f71ce028696ee5d4bd/gson/src/main/java/com/google/gson/Gson.java#L283-L285\r\n\r\n(Side note: This only affects `GsonBuilder`; it is possible to overwrite these adapters when using `@JsonAdapter` on a field.)\r\n\r\n# Feature description\r\n- `GsonBuilder.registerTypeAdapter` should throw an exception when the type is `Object` or `JsonElement` or a subclass of it\r\n- `GsonBuilder.registerTypeHierarchyAdapter` should throw an exception when the type is `JsonElement` or a subclass of it\r\n\r\nAdditionally for both methods the documentation should be extended to specify that overwriting these adapters is not possible (but maybe mention that `@JsonAdapter` can be used instead).\r\n\r\n# Alternatives / workarounds\r\nOnly adjust the documentation (and Troubleshooting Guide) to mention that these adapters cannot be overwritten.\r\n\r\nOr as proposed by #1177 let users overwrite the built-in adapters for these types.\r\n\n\n\n### Task Instructions:\nAnalyze the Java source code for the reported issue above.\nUse the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to explore and inspect the relevant classes and methods.\nDetermine the exact root-cause bug locations across the repository.\nRemember that bugs in object-oriented Java may span multiple files and classes.\nProduce your localization diagnosis in the required JSON format.\n",
+  "rq1_accuracy": {
+    "file_recall": 1.0,
+    "file_precision": 1.0,
+    "file_f1": 1.0,
+    "exact_file_match": true,
+    "method_hit": true,
+    "min_line_distance": 0.0,
+    "exact_line_hit": true,
+    "fault_window_localized": true,
+    "patch_resolved": true,
+    "matched_files": [
+      "gson/src/main/java/com/google/gson/GsonBuilder.java"
+    ],
+    "missed_files": [],
+    "spurious_files": [],
+    "matched_methods": [
+      "registerTypeAdapter",
+      "registerTypeHierarchyAdapter"
+    ]
+  },
+  "rq2_cost": {
+    "tool_calls_count": 13,
+    "source_tool_calls": 13,
+    "mcp_tool_calls": 0,
+    "prompt_tokens": 90285,
+    "completion_tokens": 1628,
+    "total_tokens": 91913,
+    "latency_seconds": 30.18,
+    "compilation_status": "OK"
+  }
+}

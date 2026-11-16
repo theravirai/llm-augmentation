@@ -1,0 +1,101 @@
+{
+  "task_id": "google__gson-1093",
+  "condition": "A",
+  "model": "gpt-oss-120b",
+  "target_commit": "0aaef0fd1bb1b9729543dc40168adfb829eb75a4",
+  "target_commit_subject": "[maven-release-plugin] prepare for next development iteration",
+  "system_prompt": "You are an expert Java program analysis and defect localization system.\nYou are tasked with identifying the exact root-cause files, classes, methods, and line ranges for the bug described below.\n\nYou have access to repository source code inspection and navigation tools:\n- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').\n- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).\n- search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.\n- read_source_file: Reads line ranges from Java source files in the repository.\n\nYou MUST rely strictly on the provided problem statement and repository source code.\nDo not guess or hallucinate files or classes not present in the project. Always inspect the relevant code first.\n\nYour final response MUST conclude with a JSON block in the following exact format:\n```json\n{\n  \"localized_files\": [\"path/to/FaultyFile.java\"],\n  \"localized_classes\": [\"fully.qualified.ClassName\"],\n  \"localized_methods\": [\"fully.qualified.ClassName.methodName\"],\n  \"localized_lines\": {\n    \"path/to/FaultyFile.java\": [123, 124]\n  },\n  \"root_cause_explanation\": \"Detailed explanation of the technical failure mechanism\"\n}\n```\n",
+  "initial_user_prompt": "### Target Repository: google/gson\n### Base Commit: 0aaef0fd1bb1b9729543dc40168adfb829eb75a4\n\n### Problem Statement:\nJsonWriter#value(java.lang.Number) can be lenient, but JsonWriter#value(double) can't,\nIn lenient mode, JsonWriter#value(java.lang.Number) can write pseudo-numeric values like `NaN`, `Infinity`, `-Infinity`:\r\n```java\r\n    if (!lenient\r\n        && (string.equals(\"-Infinity\") || string.equals(\"Infinity\") || string.equals(\"NaN\"))) {\r\n      throw new IllegalArgumentException(\"Numeric values must be finite, but was \" + value);\r\n    }\r\n```\r\n\r\nBut JsonWriter#value(double) behaves in different way: \r\n```java\r\n    if (Double.isNaN(value) || Double.isInfinite(value)) {\r\n      throw new IllegalArgumentException(\"Numeric values must be finite, but was \" + value);\r\n    }\r\n```\r\n\r\nSo, while working with streaming, it's impossible to write semi-numeric value without boxing a double (e. g. `out.value((Number) Double.valueOf(Double.NaN))`).\r\n\r\nI think, this should be possible, because boxing gives worse performance.\n\n\n### Task Instructions:\nAnalyze the Java source code for the reported issue above.\nUse the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to explore and inspect the relevant classes and methods.\nDetermine the exact root-cause bug locations across the repository.\nRemember that bugs in object-oriented Java may span multiple files and classes.\nProduce your localization diagnosis in the required JSON format.\n",
+  "tool_calls_trace": [
+    {
+      "iteration": 1,
+      "tool": "find_files",
+      "arguments": {
+        "file_pattern": "*JsonWriter*.java"
+      },
+      "result_snippet": "=== Found 2 files matching '*JsonWriter*.java' in gson ===\n- gson/src/main/java/com/google/gson/stream/JsonWriter.java\n- gson/src/test/java/com/google/gson/stream/JsonWriterTest.java",
+      "duration_seconds": 0.013
+    },
+    {
+      "iteration": 2,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+        "start_line": 1,
+        "end_line": 400
+      },
+      "result_snippet": "=== File: gson/src/main/java/com/google/gson/stream/JsonWriter.java (Lines 1-400 of 659) ===\n   1 | /*\n   2 |  * Copyright (C) 2010 Google Inc.\n   3 |  *\n   4 |  * Licensed under the Apache License, Version 2.0 (the \"License\");\n   5 |  * you may not use this file except in compliance with the License.\n   6 |  * You may obtain a copy of the License at\n   7 |  *\n   8 |  *      http://www.apache.org/licenses/LICENSE-2.0\n   9 |  *\n  10 |  * Unless required by applicable law or agreed to in writing, ",
+      "duration_seconds": 0.001
+    },
+    {
+      "iteration": 3,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+        "start_line": 400,
+        "end_line": 520
+      },
+      "result_snippet": "=== File: gson/src/main/java/com/google/gson/stream/JsonWriter.java (Lines 400-520 of 659) ===\n 400 |     if (deferredName != null) {\n 401 |       beforeName();\n 402 |       string(deferredName);\n 403 |       deferredName = null;\n 404 |     }\n 405 |   }\n 406 | \n 407 |   /**\n 408 |    * Encodes {@code value}.\n 409 |    *\n 410 |    * @param value the literal string value, or null to encode a null literal.\n 411 |    * @return this writer.\n 412 |    */\n 413 |   public JsonWriter value(String value) ",
+      "duration_seconds": 0.001
+    },
+    {
+      "iteration": 4,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+        "start_line": 520,
+        "end_line": 620
+      },
+      "result_snippet": "=== File: gson/src/main/java/com/google/gson/stream/JsonWriter.java (Lines 520-620 of 659) ===\n 520 |    * @return this writer.\n 521 |    */\n 522 |   public JsonWriter value(Number value) throws IOException {\n 523 |     if (value == null) {\n 524 |       return nullValue();\n 525 |     }\n 526 | \n 527 |     writeDeferredName();\n 528 |     String string = value.toString();\n 529 |     if (!lenient\n 530 |         && (string.equals(\"-Infinity\") || string.equals(\"Infinity\") || string.equals(\"NaN\"))) {\n ",
+      "duration_seconds": 0.001
+    },
+    {
+      "iteration": 5,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+        "start_line": 620,
+        "end_line": 720
+      },
+      "result_snippet": "=== File: gson/src/main/java/com/google/gson/stream/JsonWriter.java (Lines 620-659 of 659) ===\n 620 |   }\n 621 | \n 622 |   /**\n 623 |    * Inserts any necessary separators and whitespace before a literal value,\n 624 |    * inline array, or inline object. Also adjusts the stack to expect either a\n 625 |    * closing bracket or another element.\n 626 |    */\n 627 |   @SuppressWarnings(\"fallthrough\")\n 628 |   private void beforeValue() throws IOException {\n 629 |     switch (peek()) {\n 630 |     cas",
+      "duration_seconds": 0.001
+    }
+  ],
+  "raw_output": "{\n  \"localized_files\": [\"gson/src/main/java/com/google/gson/stream/JsonWriter.java\"],\n  \"localized_classes\": [\"com.google.gson.stream.JsonWriter\"],\n  \"localized_methods\": [\"com.google.gson.stream.JsonWriter.value(double)\"],\n  \"localized_lines\": {\n    \"gson/src/main/java/com/google/gson/stream/JsonWriter.java\": [493, 500]\n  },\n  \"root_cause_explanation\": \"The `JsonWriter.value(double)` method (lines 493\u2011500) unconditionally rejects NaN and infinite values by throwing an IllegalArgumentException, ignoring the writer's `lenient` flag. In contrast, the `value(Number)` overload correctly checks the `lenient` setting before rejecting pseudo\u2011numeric strings. This inconsistency makes it impossible to write non\u2011finite numbers in lenient mode without boxing the double, leading to the reported bug. The fix is to make `value(double)` respect `lenient` (e.g., delegate to the Number overload or add a lenient check) so that both overloads behave consistently.\"\n}",
+  "evaluation": {
+    "task_id": "google__gson-1093",
+    "condition": "A",
+    "model": "gpt-oss-120b",
+    "target_commit": "0aaef0fd1bb1b9729543dc40168adfb829eb75a4",
+    "target_commit_subject": "[maven-release-plugin] prepare for next development iteration",
+    "system_prompt": "You are an expert Java program analysis and defect localization system.\nYou are tasked with identifying the exact root-cause files, classes, methods, and line ranges for the bug described below.\n\nYou have access to repository source code inspection and navigation tools:\n- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').\n- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).\n- search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.\n- read_source_file: Reads line ranges from Java source files in the repository.\n\nYou MUST rely strictly on the provided problem statement and repository source code.\nDo not guess or hallucinate files or classes not present in the project. Always inspect the relevant code first.\n\nYour final response MUST conclude with a JSON block in the following exact format:\n```json\n{\n  \"localized_files\": [\"path/to/FaultyFile.java\"],\n  \"localized_classes\": [\"fully.qualified.ClassName\"],\n  \"localized_methods\": [\"fully.qualified.ClassName.methodName\"],\n  \"localized_lines\": {\n    \"path/to/FaultyFile.java\": [123, 124]\n  },\n  \"root_cause_explanation\": \"Detailed explanation of the technical failure mechanism\"\n}\n```\n",
+    "initial_user_prompt": "### Target Repository: google/gson\n### Base Commit: 0aaef0fd1bb1b9729543dc40168adfb829eb75a4\n\n### Problem Statement:\nJsonWriter#value(java.lang.Number) can be lenient, but JsonWriter#value(double) can't,\nIn lenient mode, JsonWriter#value(java.lang.Number) can write pseudo-numeric values like `NaN`, `Infinity`, `-Infinity`:\r\n```java\r\n    if (!lenient\r\n        && (string.equals(\"-Infinity\") || string.equals(\"Infinity\") || string.equals(\"NaN\"))) {\r\n      throw new IllegalArgumentException(\"Numeric values must be finite, but was \" + value);\r\n    }\r\n```\r\n\r\nBut JsonWriter#value(double) behaves in different way: \r\n```java\r\n    if (Double.isNaN(value) || Double.isInfinite(value)) {\r\n      throw new IllegalArgumentException(\"Numeric values must be finite, but was \" + value);\r\n    }\r\n```\r\n\r\nSo, while working with streaming, it's impossible to write semi-numeric value without boxing a double (e. g. `out.value((Number) Double.valueOf(Double.NaN))`).\r\n\r\nI think, this should be possible, because boxing gives worse performance.\n\n\n### Task Instructions:\nAnalyze the Java source code for the reported issue above.\nUse the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to explore and inspect the relevant classes and methods.\nDetermine the exact root-cause bug locations across the repository.\nRemember that bugs in object-oriented Java may span multiple files and classes.\nProduce your localization diagnosis in the required JSON format.\n",
+    "rq1_accuracy": {
+      "file_recall": 1.0,
+      "file_precision": 1.0,
+      "file_f1": 1.0,
+      "exact_file_match": true,
+      "method_hit": false,
+      "min_line_distance": 0.0,
+      "exact_line_hit": true,
+      "fault_window_localized": true,
+      "patch_resolved": true,
+      "matched_files": [
+        "gson/src/main/java/com/google/gson/stream/JsonWriter.java"
+      ],
+      "missed_files": [],
+      "spurious_files": [],
+      "matched_methods": []
+    },
+    "rq2_cost": {
+      "tool_calls_count": 5,
+      "source_tool_calls": 5,
+      "mcp_tool_calls": 0,
+      "prompt_tokens": 31842,
+      "completion_tokens": 653,
+      "total_tokens": 32495,
+      "latency_seconds": 10.98,
+      "compilation_status": "OK"
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "task_id": "google__gson-2024",
+  "condition": "A",
+  "model": "gpt-oss-120b",
+  "target_commit": "16b42ff5805074126c2e5484450c182773e408a2",
+  "target_commit_subject": "Update Caliper dependency; disable automatic result upload (#2019)",
+  "system_prompt": "You are an expert Java program analysis and defect localization system.\nYou are tasked with identifying the exact root-cause files, classes, methods, and line ranges for the bug described below.\n\nYou have access to repository source code inspection and navigation tools:\n- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').\n- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).\n- search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.\n- read_source_file: Reads line ranges from Java source files in the repository.\n\nYou MUST rely strictly on the provided problem statement and repository source code.\nDo not guess or hallucinate files or classes not present in the project. Always inspect the relevant code first.\n\nYour final response MUST conclude with a JSON block in the following exact format:\n```json\n{\n  \"localized_files\": [\"path/to/FaultyFile.java\"],\n  \"localized_classes\": [\"fully.qualified.ClassName\"],\n  \"localized_methods\": [\"fully.qualified.ClassName.methodName\"],\n  \"localized_lines\": {\n    \"path/to/FaultyFile.java\": [123, 124]\n  },\n  \"root_cause_explanation\": \"Detailed explanation of the technical failure mechanism\"\n}\n```\n",
+  "initial_user_prompt": "### Target Repository: google/gson\n### Base Commit: 16b42ff5805074126c2e5484450c182773e408a2\n\n### Problem Statement:\nNew FieldNamingPolicy: UPPER_CASE_WITH_UNDERSCORES\nHi,\r\n\r\ncurrently, I do try to integrate a service that uses a UPPER_CASE_WITH_UNDERSCORES naming scheme for their field names, e.g.:\r\n\r\n```\r\n{\r\n  \"PRODUCT_LIST\" : {\r\n    \"PRODUCT\" : [\r\n      {\r\n      \"APPLICATION_CODE\" : \"secret application code\",\r\n      \"PRODUCT_TYPE\" : \"product type value\",\r\n      \"PRODUCT_NAME\" : \"product name\"\r\n      }\r\n    ]\r\n  }\r\n}\r\n```\r\n\r\nCurrently, GSON only supports LOWER_CASE_WITH_UNDERSCORES by default, so I would have to implement my own FieldNamingStategy class and possibly duplicate some code, like this:\r\n\r\n```\r\nthis.gson = new GsonBuilder()\r\n                .setFieldNamingStrategy(\r\n                        f -> FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES.translateName(f).toUpperCase(Locale.ENGLISH))\r\n                .create();\r\n```\r\n\r\nSo, ideally, something like this would be supported by GSON itself and I could use a new enum value.\n\n\n### Task Instructions:\nAnalyze the Java source code for the reported issue above.\nUse the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to explore and inspect the relevant classes and methods.\nDetermine the exact root-cause bug locations across the repository.\nRemember that bugs in object-oriented Java may span multiple files and classes.\nProduce your localization diagnosis in the required JSON format.\n",
+  "tool_calls_trace": [
+    {
+      "iteration": 1,
+      "tool": "search_source_code",
+      "arguments": {
+        "query": "enum FieldNamingPolicy",
+        "file_pattern": "*",
+        "max_results": 20
+      },
+      "result_snippet": "=== Search Results for 'enum FieldNamingPolicy' (1 matches) ===\ngson/src/main/java/com/google/gson/FieldNamingPolicy.java:31: public enum FieldNamingPolicy implements FieldNamingStrategy {",
+      "duration_seconds": 0.06
+    },
+    {
+      "iteration": 2,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "gson/src/main/java/com/google/gson/FieldNamingPolicy.java",
+        "start_line": 1,
+        "end_line": 400
+      },
+      "result_snippet": "=== File: gson/src/main/java/com/google/gson/FieldNamingPolicy.java (Lines 1-182 of 182) ===\n   1 | /*\n   2 |  * Copyright (C) 2008 Google Inc.\n   3 |  *\n   4 |  * Licensed under the Apache License, Version 2.0 (the \"License\");\n   5 |  * you may not use this file except in compliance with the License.\n   6 |  * You may obtain a copy of the License at\n   7 |  *\n   8 |  * http://www.apache.org/licenses/LICENSE-2.0\n   9 |  *\n  10 |  * Unless required by applicable law or agreed to in writing, softw",
+      "duration_seconds": 0.001
+    },
+    {
+      "iteration": 3,
+      "tool": "search_source_code",
+      "arguments": {
+        "query": "UPPER_CASE_WITH_UNDERSCORES",
+        "file_pattern": "*",
+        "max_results": 20
+      },
+      "result_snippet": "No matches found for query 'UPPER_CASE_WITH_UNDERSCORES' across * files in gson.",
+      "duration_seconds": 0.065
+    }
+  ],
+  "raw_output": "Thus missing. The root cause is that the enum does not include this naming policy. The fix would be to add a new enum constant similar to LOWER_CASE_WITH_UNDERSCORES but using toUpperCase.\n\nThus the bug location: FieldNamingPolicy.java lines where enum constants defined. The missing constant is the root cause. So we need to report localized file: gson/src/main/java/com/google/gson/FieldNamingPolicy.java, class: com.google.gson.FieldNamingPolicy, method: maybe translateName for each constant but missing one. So we can point to the enum definition lines 90-94 etc. The root cause: absence of UPPER_CASE_WITH_UNDERSCORES constant.\n\nThus JSON: localized_files list with that file, localized_classes with fully qualified name, localized_methods maybe none? Could list the translateName method of LOWER_CASE_WITH_UNDERSCORES as related. But we can list the missing constant location: the enum definition block lines 31-140. Provide line range maybe 31-140.\n\nLet's output.\n{\n  \"localized_files\": [\"gson/src/main/java/com/google/gson/FieldNamingPolicy.java\"],\n  \"localized_classes\": [\"com.google.gson.FieldNamingPolicy\"],\n  \"localized_methods\": [\"com.google.gson.FieldNamingPolicy.translateName\"],\n  \"localized_lines\": {\n    \"gson/src/main/java/com/google/gson/FieldNamingPolicy.java\": [31, 140]\n  },\n  \"root_cause_explanation\": \"The library's FieldNamingPolicy enum does not provide a constant for the UPPER_CASE_WITH_UNDERSCORES naming convention. The enum only defines IDENTITY, UPPER_CAMEL_CASE, UPPER_CAMEL_CASE_WITH_SPACES, LOWER_CASE_WITH_UNDERSCORES, LOWER_CASE_WITH_DASHES, and LOWER_CASE_WITH_DOTS. Because there is no UPPER_CASE_WITH_UNDERSCORES entry, users cannot directly select this policy via GsonBuilder.setFieldNamingStrategy(FieldNamingPolicy.UPPER_CASE_WITH_UNDERSCORES). The missing enum constant is the root cause of the reported issue; adding a new constant that translates field names using separateCamelCase(..., '_').toUpperCase(Locale.ENGLISH) would resolve the problem.\"\n}",
+  "evaluation": {
+    "task_id": "google__gson-2024",
+    "condition": "A",
+    "model": "gpt-oss-120b",
+    "target_commit": "16b42ff5805074126c2e5484450c182773e408a2",
+    "target_commit_subject": "Update Caliper dependency; disable automatic result upload (#2019)",
+    "system_prompt": "You are an expert Java program analysis and defect localization system.\nYou are tasked with identifying the exact root-cause files, classes, methods, and line ranges for the bug described below.\n\nYou have access to repository source code inspection and navigation tools:\n- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').\n- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).\n- search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.\n- read_source_file: Reads line ranges from Java source files in the repository.\n\nYou MUST rely strictly on the provided problem statement and repository source code.\nDo not guess or hallucinate files or classes not present in the project. Always inspect the relevant code first.\n\nYour final response MUST conclude with a JSON block in the following exact format:\n```json\n{\n  \"localized_files\": [\"path/to/FaultyFile.java\"],\n  \"localized_classes\": [\"fully.qualified.ClassName\"],\n  \"localized_methods\": [\"fully.qualified.ClassName.methodName\"],\n  \"localized_lines\": {\n    \"path/to/FaultyFile.java\": [123, 124]\n  },\n  \"root_cause_explanation\": \"Detailed explanation of the technical failure mechanism\"\n}\n```\n",
+    "initial_user_prompt": "### Target Repository: google/gson\n### Base Commit: 16b42ff5805074126c2e5484450c182773e408a2\n\n### Problem Statement:\nNew FieldNamingPolicy: UPPER_CASE_WITH_UNDERSCORES\nHi,\r\n\r\ncurrently, I do try to integrate a service that uses a UPPER_CASE_WITH_UNDERSCORES naming scheme for their field names, e.g.:\r\n\r\n```\r\n{\r\n  \"PRODUCT_LIST\" : {\r\n    \"PRODUCT\" : [\r\n      {\r\n      \"APPLICATION_CODE\" : \"secret application code\",\r\n      \"PRODUCT_TYPE\" : \"product type value\",\r\n      \"PRODUCT_NAME\" : \"product name\"\r\n      }\r\n    ]\r\n  }\r\n}\r\n```\r\n\r\nCurrently, GSON only supports LOWER_CASE_WITH_UNDERSCORES by default, so I would have to implement my own FieldNamingStategy class and possibly duplicate some code, like this:\r\n\r\n```\r\nthis.gson = new GsonBuilder()\r\n                .setFieldNamingStrategy(\r\n                        f -> FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES.translateName(f).toUpperCase(Locale.ENGLISH))\r\n                .create();\r\n```\r\n\r\nSo, ideally, something like this would be supported by GSON itself and I could use a new enum value.\n\n\n### Task Instructions:\nAnalyze the Java source code for the reported issue above.\nUse the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to explore and inspect the relevant classes and methods.\nDetermine the exact root-cause bug locations across the repository.\nRemember that bugs in object-oriented Java may span multiple files and classes.\nProduce your localization diagnosis in the required JSON format.\n",
+    "rq1_accuracy": {
+      "file_recall": 1.0,
+      "file_precision": 1.0,
+      "file_f1": 1.0,
+      "exact_file_match": true,
+      "method_hit": false,
+      "min_line_distance": 13.0,
+      "exact_line_hit": false,
+      "fault_window_localized": true,
+      "patch_resolved": true,
+      "matched_files": [
+        "gson/src/main/java/com/google/gson/FieldNamingPolicy.java"
+      ],
+      "missed_files": [],
+      "spurious_files": [],
+      "matched_methods": []
+    },
+    "rq2_cost": {
+      "tool_calls_count": 3,
+      "source_tool_calls": 3,
+      "mcp_tool_calls": 0,
+      "prompt_tokens": 10251,
+      "completion_tokens": 957,
+      "total_tokens": 11208,
+      "latency_seconds": 13.23,
+      "compilation_status": "OK"
+    }
+  }
+}

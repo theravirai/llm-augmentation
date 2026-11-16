@@ -1,0 +1,40 @@
+{
+  "task_id": "google__gson-2061",
+  "condition": "B",
+  "model": "gpt-oss-120b",
+  "target_commit": "be0a1f4ff74bcd01580887cc9f3ec592d773f24c",
+  "target_commit_subject": "Remove Gradle build support (#2063)",
+  "system_prompt": "You are an expert Java program analysis and defect localization system.\nYou are provided with a real-world bug description AND deterministic static analysis facts extracted from the compiled Java bytecode using the SootUp framework.\n\nYou have access to repository source code inspection and navigation tools:\n- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').\n- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).\n- search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.\n- read_source_file: Reads line ranges from Java source files in the repository.\n\nPay close attention to the bytecode static analysis facts (e.g., class hierarchies, anonymous inner classes, and allocation sites).\nDo not ignore static evidence. Use the source code inspection tools to verify the exact faulty lines and methods.\n\nCRITICAL MULTI-FILE INSTRUCTION:\nReal-world Java defects frequently span multiple files (e.g. companion subclasses or factory methods in separate classes).\nWhen the static bytecode facts indicate subclasses (e.g., JsonTreeReader extending JsonReader) or factory methods/anonymous inner classes in companion files (e.g., Gson creating TypeAdapters like Gson$1, Gson$2), you MUST inspect ALL referenced companion files using read_source_file.\nDo not assume single-file defects when inheritance links or polymorphic relationships are present.\n\nYour final response MUST conclude with a JSON block in the following exact format:\n```json\n{\n  \"localized_files\": [\"path/to/FaultyFile1.java\", \"path/to/FaultyFile2.java\"],\n  \"localized_classes\": [\"fully.qualified.ClassName1\", \"fully.qualified.ClassName2\"],\n  \"localized_methods\": [\"fully.qualified.ClassName1.methodName1\", \"fully.qualified.ClassName2.methodName2\"],\n  \"localized_lines\": {\n    \"path/to/FaultyFile1.java\": [123, 124],\n    \"path/to/FaultyFile2.java\": [200, 205]\n  },\n  \"root_cause_explanation\": \"Detailed explanation of the technical failure mechanism\"\n}\n```\n",
+  "initial_user_prompt": "### Target Repository: google/gson\n### Base Commit: be0a1f4ff74bcd01580887cc9f3ec592d773f24c\n\n### Problem Statement:\nJsonReader.hasNext() returns true at END_DOCUMENT\nJsonReader.hasNext() will return true if we are at the end of the document \r\n(reader.peek() == JsonToken.END_DOCUMENT)\n\n\n### Deterministic Static Analysis Facts (SootUp Bytecode Extractor):\n=== CLASS HIERARCHY FACT ===\nTarget: com.google.gson.stream.JsonReader\n\nSuperclasses:\n - java.lang.Object\n\nSubclasses:\n (Found 1 subclasses across 1 declaring files/containers):\n\n [Declared in file/class: com.google.gson.internal.bind.JsonTreeReader] (1 subclasses):\n   - com.google.gson.internal.bind.JsonTreeReader\n\nImplemented Interfaces:\n - java.io.Closeable\n - java.lang.AutoCloseable\n\n=== METHOD INSPECTION FACT ===\nSignature: <com.google.gson.stream.JsonReader: boolean hasNext()>\nDeclaring Class: com.google.gson.stream.JsonReader\nSource File: /Volumes/BrainStorm/Github/SootUp-Store/swebench-java-evaluation/workspace/gson/gson/target/classes/com/google/gson/stream/JsonReader.class\n\nJimple Body:\n[Line 420] this := @this: com.google.gson.stream.JsonReader\n[Line 420] l1 = this.<com.google.gson.stream.JsonReader: int peeked>\n[Line 421] if l1 != 0\n[Line 422] l1 = virtualinvoke this.<com.google.gson.stream.JsonReader: int doPeek()>()\n[Line 424] if l1 == 2\n[Line 424] if l1 == 4\n[Line 424] if l1 == 17\n[Line 424] $stack2 = 1\n[Line 424] goto\n[Line 424] $stack2 = 0\n[Line 424] return $stack2\n\n=== METHOD INSPECTION FACT ===\nSignature: <com.google.gson.internal.bind.JsonTreeReader: boolean hasNext()>\nDeclaring Class: com.google.gson.internal.bind.JsonTreeReader\nSource File: /Volumes/BrainStorm/Github/SootUp-Store/swebench-java-evaluation/workspace/gson/gson/target/classes/com/google/gson/internal/bind/JsonTreeReader.class\n\nJimple Body:\n[Line 103] this := @this: com.google.gson.internal.bind.JsonTreeReader\n[Line 103] l1 = virtualinvoke this.<com.google.gson.internal.bind.JsonTreeReader: com.google.gson.stream.JsonToken peek()>()\n[Line 104] $stack2 = <com.google.gson.stream.JsonToken: com.google.gson.stream.JsonToken END_OBJECT>\n[Line 104] if l1 == $stack2\n[Line 104] $stack3 = <com.google.gson.stream.JsonToken: com.google.gson.stream.JsonToken END_ARRAY>\n[Line 104] if l1 == $stack3\n[Line 104] return 1\n[Line 104] return 0\n\n### Task Instructions:\nAnalyze the Java source code and the deterministic SootUp static analysis facts above.\nUse the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to inspect the relevant classes, methods, and line ranges.\nIdentify all root-cause bug locations, including multi-file links, polymorphic dispatches, and anonymous classes.\nProduce your localization diagnosis in the required JSON format.\n",
+  "rq1_accuracy": {
+    "file_recall": 1.0,
+    "file_precision": 1.0,
+    "file_f1": 1.0,
+    "exact_file_match": true,
+    "method_hit": true,
+    "min_line_distance": 0.0,
+    "exact_line_hit": true,
+    "fault_window_localized": true,
+    "patch_resolved": true,
+    "matched_files": [
+      "gson/src/main/java/com/google/gson/stream/JsonReader.java",
+      "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java"
+    ],
+    "missed_files": [],
+    "spurious_files": [],
+    "matched_methods": [
+      "hasNext",
+      "hasNext"
+    ]
+  },
+  "rq2_cost": {
+    "tool_calls_count": 3,
+    "source_tool_calls": 3,
+    "mcp_tool_calls": 0,
+    "prompt_tokens": 10724,
+    "completion_tokens": 964,
+    "total_tokens": 11688,
+    "latency_seconds": 16.83,
+    "compilation_status": "OK"
+  }
+}

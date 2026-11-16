@@ -1,0 +1,91 @@
+{
+  "task_id": "google__gson-1093",
+  "condition": "B",
+  "model": "gpt-oss-120b",
+  "target_commit": "0aaef0fd1bb1b9729543dc40168adfb829eb75a4",
+  "target_commit_subject": "[maven-release-plugin] prepare for next development iteration",
+  "system_prompt": "You are an expert Java program analysis and defect localization system.\nYou are provided with a real-world bug description AND deterministic static analysis facts extracted from the compiled Java bytecode using the SootUp framework.\n\nYou have access to repository source code inspection and navigation tools:\n- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').\n- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).\n- search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.\n- read_source_file: Reads line ranges from Java source files in the repository.\n\nPay close attention to the bytecode static analysis facts (e.g., class hierarchies, anonymous inner classes, and allocation sites).\nDo not ignore static evidence. Use the source code inspection tools to verify the exact faulty lines and methods.\n\nYour final response MUST conclude with a JSON block in the following exact format:\n```json\n{\n  \"localized_files\": [\"path/to/FaultyFile.java\"],\n  \"localized_classes\": [\"fully.qualified.ClassName\"],\n  \"localized_methods\": [\"fully.qualified.ClassName.methodName\"],\n  \"localized_lines\": {\n    \"path/to/FaultyFile.java\": [123, 124]\n  },\n  \"root_cause_explanation\": \"Detailed explanation of the technical failure mechanism\"\n}\n```\n",
+  "initial_user_prompt": "### Target Repository: google/gson\n### Base Commit: 0aaef0fd1bb1b9729543dc40168adfb829eb75a4\n\n### Problem Statement:\nJsonWriter#value(java.lang.Number) can be lenient, but JsonWriter#value(double) can't,\nIn lenient mode, JsonWriter#value(java.lang.Number) can write pseudo-numeric values like `NaN`, `Infinity`, `-Infinity`:\r\n```java\r\n    if (!lenient\r\n        && (string.equals(\"-Infinity\") || string.equals(\"Infinity\") || string.equals(\"NaN\"))) {\r\n      throw new IllegalArgumentException(\"Numeric values must be finite, but was \" + value);\r\n    }\r\n```\r\n\r\nBut JsonWriter#value(double) behaves in different way: \r\n```java\r\n    if (Double.isNaN(value) || Double.isInfinite(value)) {\r\n      throw new IllegalArgumentException(\"Numeric values must be finite, but was \" + value);\r\n    }\r\n```\r\n\r\nSo, while working with streaming, it's impossible to write semi-numeric value without boxing a double (e. g. `out.value((Number) Double.valueOf(Double.NaN))`).\r\n\r\nI think, this should be possible, because boxing gives worse performance.\n\n\n### Deterministic Static Analysis Facts (SootUp Bytecode Extractor):\n=== CLASS HIERARCHY FACT ===\nTarget: com.google.gson.stream.JsonWriter\n\nSuperclasses:\n - java.lang.Object\n\nSubclasses:\n (Found 1 subclasses across 1 declaring files/containers):\n\n [Declared in file/class: com.google.gson.internal.bind.JsonTreeWriter] (1 subclasses):\n   - com.google.gson.internal.bind.JsonTreeWriter\n\nImplemented Interfaces:\n - java.io.Flushable\n - java.io.Closeable\n - java.lang.AutoCloseable\n\n### Task Instructions:\nAnalyze the Java source code and the deterministic SootUp static analysis facts above.\nUse the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to inspect the relevant classes, methods, and line ranges.\nIdentify all root-cause bug locations, including multi-file links, polymorphic dispatches, and anonymous classes.\nProduce your localization diagnosis in the required JSON format.\n",
+  "tool_calls_trace": [
+    {
+      "iteration": 1,
+      "tool": "find_files",
+      "arguments": {
+        "file_pattern": "*JsonWriter*.java",
+        "max_results": 20
+      },
+      "result_snippet": "=== Found 2 files matching '*JsonWriter*.java' in gson ===\n- gson/src/main/java/com/google/gson/stream/JsonWriter.java\n- gson/src/test/java/com/google/gson/stream/JsonWriterTest.java",
+      "duration_seconds": 0.024
+    },
+    {
+      "iteration": 2,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+        "start_line": 1,
+        "end_line": 400
+      },
+      "result_snippet": "=== File: gson/src/main/java/com/google/gson/stream/JsonWriter.java (Lines 1-400 of 659) ===\n   1 | /*\n   2 |  * Copyright (C) 2010 Google Inc.\n   3 |  *\n   4 |  * Licensed under the Apache License, Version 2.0 (the \"License\");\n   5 |  * you may not use this file except in compliance with the License.\n   6 |  * You may obtain a copy of the License at\n   7 |  *\n   8 |  *      http://www.apache.org/licenses/LICENSE-2.0\n   9 |  *\n  10 |  * Unless required by applicable law or agreed to in writing, ",
+      "duration_seconds": 0.001
+    },
+    {
+      "iteration": 3,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+        "start_line": 400,
+        "end_line": 520
+      },
+      "result_snippet": "=== File: gson/src/main/java/com/google/gson/stream/JsonWriter.java (Lines 400-520 of 659) ===\n 400 |     if (deferredName != null) {\n 401 |       beforeName();\n 402 |       string(deferredName);\n 403 |       deferredName = null;\n 404 |     }\n 405 |   }\n 406 | \n 407 |   /**\n 408 |    * Encodes {@code value}.\n 409 |    *\n 410 |    * @param value the literal string value, or null to encode a null literal.\n 411 |    * @return this writer.\n 412 |    */\n 413 |   public JsonWriter value(String value) ",
+      "duration_seconds": 0.001
+    },
+    {
+      "iteration": 4,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+        "start_line": 520,
+        "end_line": 620
+      },
+      "result_snippet": "=== File: gson/src/main/java/com/google/gson/stream/JsonWriter.java (Lines 520-620 of 659) ===\n 520 |    * @return this writer.\n 521 |    */\n 522 |   public JsonWriter value(Number value) throws IOException {\n 523 |     if (value == null) {\n 524 |       return nullValue();\n 525 |     }\n 526 | \n 527 |     writeDeferredName();\n 528 |     String string = value.toString();\n 529 |     if (!lenient\n 530 |         && (string.equals(\"-Infinity\") || string.equals(\"Infinity\") || string.equals(\"NaN\"))) {\n ",
+      "duration_seconds": 0.001
+    }
+  ],
+  "raw_output": "The bug: value(double) does not respect lenient flag. Should be similar to Number version: check lenient before throwing. So root cause is in method value(double) lines 493-500. The fix: modify condition to also check lenient flag.\n\nThus localization: file JsonWriter.java, class com.google.gson.stream.JsonWriter, method com.google.gson.stream.JsonWriter.value(double), lines 493-500 (or specifically 493-496). Provide lines.\n\nReturn JSON with localized_files list containing path, localized_classes list, localized_methods list, localized_lines mapping.\n\nLet's capture exact line numbers: In source we saw line numbers: 493 is start of method signature, 494-496 condition, 497 etc. So lines 493-496 are faulty. Provide maybe 493-496.\n\nNow produce JSON.\n{\n  \"localized_files\": [\"gson/src/main/java/com/google/gson/stream/JsonWriter.java\"],\n  \"localized_classes\": [\"com.google.gson.stream.JsonWriter\"],\n  \"localized_methods\": [\"com.google.gson.stream.JsonWriter.value(double)\"],\n  \"localized_lines\": {\n    \"gson/src/main/java/com/google/gson/stream/JsonWriter.java\": [493, 494, 495, 496]\n  },\n  \"root_cause_explanation\": \"The `JsonWriter.value(double)` method unconditionally rejects NaN and infinite values by throwing an IllegalArgumentException (lines 494\u2011496). This check ignores the writer's lenient mode, unlike the overload `value(Number)` which respects the `lenient` flag and only throws when lenient is false. Consequently, in lenient mode callers cannot write pseudo\u2011numeric values using the primitive double overload without boxing, leading to a functional inconsistency and performance penalty. The bug resides in the conditional logic of `value(double)` which should be updated to mirror the lenient\u2011aware validation performed in `value(Number)`.\"\n}",
+  "evaluation": {
+    "task_id": "google__gson-1093",
+    "condition": "B",
+    "model": "gpt-oss-120b",
+    "target_commit": "0aaef0fd1bb1b9729543dc40168adfb829eb75a4",
+    "target_commit_subject": "[maven-release-plugin] prepare for next development iteration",
+    "system_prompt": "You are an expert Java program analysis and defect localization system.\nYou are provided with a real-world bug description AND deterministic static analysis facts extracted from the compiled Java bytecode using the SootUp framework.\n\nYou have access to repository source code inspection and navigation tools:\n- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').\n- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).\n- search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.\n- read_source_file: Reads line ranges from Java source files in the repository.\n\nPay close attention to the bytecode static analysis facts (e.g., class hierarchies, anonymous inner classes, and allocation sites).\nDo not ignore static evidence. Use the source code inspection tools to verify the exact faulty lines and methods.\n\nYour final response MUST conclude with a JSON block in the following exact format:\n```json\n{\n  \"localized_files\": [\"path/to/FaultyFile.java\"],\n  \"localized_classes\": [\"fully.qualified.ClassName\"],\n  \"localized_methods\": [\"fully.qualified.ClassName.methodName\"],\n  \"localized_lines\": {\n    \"path/to/FaultyFile.java\": [123, 124]\n  },\n  \"root_cause_explanation\": \"Detailed explanation of the technical failure mechanism\"\n}\n```\n",
+    "initial_user_prompt": "### Target Repository: google/gson\n### Base Commit: 0aaef0fd1bb1b9729543dc40168adfb829eb75a4\n\n### Problem Statement:\nJsonWriter#value(java.lang.Number) can be lenient, but JsonWriter#value(double) can't,\nIn lenient mode, JsonWriter#value(java.lang.Number) can write pseudo-numeric values like `NaN`, `Infinity`, `-Infinity`:\r\n```java\r\n    if (!lenient\r\n        && (string.equals(\"-Infinity\") || string.equals(\"Infinity\") || string.equals(\"NaN\"))) {\r\n      throw new IllegalArgumentException(\"Numeric values must be finite, but was \" + value);\r\n    }\r\n```\r\n\r\nBut JsonWriter#value(double) behaves in different way: \r\n```java\r\n    if (Double.isNaN(value) || Double.isInfinite(value)) {\r\n      throw new IllegalArgumentException(\"Numeric values must be finite, but was \" + value);\r\n    }\r\n```\r\n\r\nSo, while working with streaming, it's impossible to write semi-numeric value without boxing a double (e. g. `out.value((Number) Double.valueOf(Double.NaN))`).\r\n\r\nI think, this should be possible, because boxing gives worse performance.\n\n\n### Deterministic Static Analysis Facts (SootUp Bytecode Extractor):\n=== CLASS HIERARCHY FACT ===\nTarget: com.google.gson.stream.JsonWriter\n\nSuperclasses:\n - java.lang.Object\n\nSubclasses:\n (Found 1 subclasses across 1 declaring files/containers):\n\n [Declared in file/class: com.google.gson.internal.bind.JsonTreeWriter] (1 subclasses):\n   - com.google.gson.internal.bind.JsonTreeWriter\n\nImplemented Interfaces:\n - java.io.Flushable\n - java.io.Closeable\n - java.lang.AutoCloseable\n\n### Task Instructions:\nAnalyze the Java source code and the deterministic SootUp static analysis facts above.\nUse the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to inspect the relevant classes, methods, and line ranges.\nIdentify all root-cause bug locations, including multi-file links, polymorphic dispatches, and anonymous classes.\nProduce your localization diagnosis in the required JSON format.\n",
+    "rq1_accuracy": {
+      "file_recall": 1.0,
+      "file_precision": 1.0,
+      "file_f1": 1.0,
+      "exact_file_match": true,
+      "method_hit": false,
+      "min_line_distance": 0.0,
+      "exact_line_hit": true,
+      "fault_window_localized": true,
+      "patch_resolved": true,
+      "matched_files": [
+        "gson/src/main/java/com/google/gson/stream/JsonWriter.java"
+      ],
+      "missed_files": [],
+      "spurious_files": [],
+      "matched_methods": []
+    },
+    "rq2_cost": {
+      "tool_calls_count": 4,
+      "source_tool_calls": 4,
+      "mcp_tool_calls": 0,
+      "prompt_tokens": 24254,
+      "completion_tokens": 699,
+      "total_tokens": 24953,
+      "latency_seconds": 10.79,
+      "compilation_status": "OK"
+    }
+  }
+}

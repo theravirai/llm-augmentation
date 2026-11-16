@@ -1,0 +1,40 @@
+{
+  "task_id": "google__gson-2061",
+  "condition": "A",
+  "model": "gpt-oss-120b",
+  "target_commit": "be0a1f4ff74bcd01580887cc9f3ec592d773f24c",
+  "target_commit_subject": "Remove Gradle build support (#2063)",
+  "system_prompt": "You are an expert Java program analysis and defect localization system.\nYou are tasked with identifying the exact root-cause files, classes, methods, and line ranges for the bug described below.\n\nYou have access to repository source code inspection and navigation tools:\n- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').\n- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).\n- search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.\n- read_source_file: Reads line ranges from Java source files in the repository.\n\nYou MUST rely strictly on the provided problem statement and repository source code.\nDo not guess or hallucinate files or classes not present in the project. Always inspect the relevant code first.\n\nYour final response MUST conclude with a JSON block in the following exact format:\n```json\n{\n  \"localized_files\": [\"path/to/FaultyFile.java\"],\n  \"localized_classes\": [\"fully.qualified.ClassName\"],\n  \"localized_methods\": [\"fully.qualified.ClassName.methodName\"],\n  \"localized_lines\": {\n    \"path/to/FaultyFile.java\": [123, 124]\n  },\n  \"root_cause_explanation\": \"Detailed explanation of the technical failure mechanism\"\n}\n```\n",
+  "initial_user_prompt": "### Target Repository: google/gson\n### Base Commit: be0a1f4ff74bcd01580887cc9f3ec592d773f24c\n\n### Problem Statement:\nJsonReader.hasNext() returns true at END_DOCUMENT\nJsonReader.hasNext() will return true if we are at the end of the document \r\n(reader.peek() == JsonToken.END_DOCUMENT)\n\n\n### Task Instructions:\nAnalyze the Java source code for the reported issue above.\nUse the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to explore and inspect the relevant classes and methods.\nDetermine the exact root-cause bug locations across the repository.\nRemember that bugs in object-oriented Java may span multiple files and classes.\nProduce your localization diagnosis in the required JSON format.\n",
+  "rq1_accuracy": {
+    "file_recall": 0.5,
+    "file_precision": 1.0,
+    "file_f1": 0.6667,
+    "exact_file_match": false,
+    "method_hit": true,
+    "min_line_distance": 0.0,
+    "exact_line_hit": true,
+    "fault_window_localized": false,
+    "patch_resolved": false,
+    "matched_files": [
+      "gson/src/main/java/com/google/gson/stream/JsonReader.java"
+    ],
+    "missed_files": [
+      "gson/src/main/java/com/google/gson/internal/bind/JsonTreeReader.java"
+    ],
+    "spurious_files": [],
+    "matched_methods": [
+      "hasNext"
+    ]
+  },
+  "rq2_cost": {
+    "tool_calls_count": 7,
+    "source_tool_calls": 7,
+    "mcp_tool_calls": 0,
+    "prompt_tokens": 50542,
+    "completion_tokens": 891,
+    "total_tokens": 51433,
+    "latency_seconds": 21.66,
+    "compilation_status": "OK"
+  }
+}
