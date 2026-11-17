@@ -115,15 +115,32 @@ public class SootUpAnalyzer {
         sb.append(" (Found ").append(subclasses.size()).append(" subclasses across ").append(byOuter.size()).append(" declaring files/containers):\n");
         byOuter.forEach((outer, list) -> {
             sb.append("\n [Declared in file/class: ").append(outer).append("] (").append(list.size()).append(" subclasses):\n");
+            List<String> withMethods = new ArrayList<>();
+            List<String> anonymous = new ArrayList<>();
             for (String sub : list) {
-                sb.append("   - ").append(sub);
                 if (sub.contains("$")) {
                     String allocMethod = findAllocatingMethod(sub, outer);
                     if (allocMethod != null && !allocMethod.equals("<init>") && !allocMethod.equals("<clinit>")) {
-                        sb.append(" (instantiated in method: ").append(allocMethod).append(")");
+                        withMethods.add("   - " + sub + " (instantiated in method: " + allocMethod + ")");
+                    } else {
+                        anonymous.add(sub);
                     }
+                } else {
+                    withMethods.add("   - " + sub);
                 }
-                sb.append("\n");
+            }
+
+            for (String s : withMethods) {
+                sb.append(s).append("\n");
+            }
+
+            if (anonymous.size() > 5) {
+                sb.append("   - [").append(anonymous.size()).append(" anonymous inner subclasses collapsed: ")
+                  .append(anonymous.get(0)).append(" .. ").append(anonymous.get(anonymous.size() - 1)).append("]\n");
+            } else {
+                for (String a : anonymous) {
+                    sb.append("   - ").append(a).append("\n");
+                }
             }
         });
     }
@@ -324,6 +341,10 @@ public class SootUpAnalyzer {
                             if (match) {
                                 matchCount++;
                                 appendMatch(sb, method, stmt, "Allocates: " + typeStr);
+                                if (matchCount >= 8) {
+                                    sb.append("\n(Additional allocation matches truncated for conciseness)\n");
+                                    return sb.toString();
+                                }
                             }
                         }
                     }
@@ -423,15 +444,24 @@ public class SootUpAnalyzer {
         return sb.toString();
     }
 
+    private static boolean isProductionClass(String className) {
+        String lower = className.toLowerCase();
+        return !lower.contains(".metrics.") &&
+               !lower.contains(".examples.") &&
+               !lower.contains("benchmark") &&
+               !lower.contains("test");
+    }
+
     private List<JavaSootClass> getClassesToScan(String scopeClass) {
         List<JavaSootClass> classes = new ArrayList<>();
         if (scopeClass != null && !scopeClass.trim().isEmpty()) {
             view.getClass(factory.getClassType(scopeClass.trim())).ifPresent(classes::add);
         } else {
-            // Only scan application classes (from target/classes), skipping runtime JDK library classes
+            // Only scan production application classes, skipping benchmarks, examples, and tests
             view.getClasses()
                 .filter(c -> c.isApplicationClass() && c instanceof JavaSootClass)
                 .map(c -> (JavaSootClass) c)
+                .filter(c -> isProductionClass(c.getName()))
                 .forEach(classes::add);
         }
         return classes;
