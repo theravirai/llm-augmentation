@@ -32,17 +32,17 @@ Jimple Body:
 [Line 424] $stack2 = 0
 [Line 424] return $stack2
 
-=== CLASS HIERARCHY FACT ===
-Target: com.google.gson.stream.JsonToken
+=== METHOD INSPECTION FACT ===
+Signature: <com.google.gson.internal.bind.JsonTreeReader: boolean hasNext()>
+Declaring Class: com.google.gson.internal.bind.JsonTreeReader
+Source File: /Volumes/BrainStorm/Github/SootUp-Store/swebench-java-evaluation/workspace/gson/gson/target/classes/com/google/gson/internal/bind/JsonTreeReader.class
 
-Superclasses:
- - java.lang.Enum
- - java.lang.Object
-
-Subclasses:
- (None)
-
-Implemented Interfaces:
- - java.lang.constant.Constable
- - java.lang.Comparable
- - java.io.Serializable
+Jimple Body:
+[Line 103] this := @this: com.google.gson.internal.bind.JsonTreeReader
+[Line 103] l1 = virtualinvoke this.<com.google.gson.internal.bind.JsonTreeReader: com.google.gson.stream.JsonToken peek()>()
+[Line 104] $stack2 = <com.google.gson.stream.JsonToken: com.google.gson.stream.JsonToken END_OBJECT>
+[Line 104] if l1 == $stack2
+[Line 104] $stack3 = <com.google.gson.stream.JsonToken: com.google.gson.stream.JsonToken END_ARRAY>
+[Line 104] if l1 == $stack3
+[Line 104] return 1
+[Line 104] return 0

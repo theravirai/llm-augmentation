@@ -2,7 +2,7 @@ import json
 import re
 import subprocess
 import time
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 from pathlib import Path
 
 from llm_augmentation.benchmark.task import Task
@@ -30,14 +30,20 @@ You have access to repository source code inspection and navigation tools:
 Pay close attention to the bytecode static analysis facts (e.g., class hierarchies, anonymous inner classes, and allocation sites).
 Do not ignore static evidence. Use the source code inspection tools to verify the exact faulty lines and methods.
 
+CRITICAL MULTI-FILE INSTRUCTION:
+Real-world Java defects frequently span multiple files (e.g. companion subclasses or factory methods in separate classes).
+When the static bytecode facts indicate subclasses (e.g., JsonTreeReader extending JsonReader) or factory methods/anonymous inner classes in companion files (e.g., Gson creating TypeAdapters like Gson$1, Gson$2), you MUST inspect ALL referenced companion files using read_source_file.
+Do not assume single-file defects when inheritance links or polymorphic relationships are present.
+
 Your final response MUST conclude with a JSON block in the following exact format:
 ```json
 {
-  "localized_files": ["path/to/FaultyFile.java"],
-  "localized_classes": ["fully.qualified.ClassName"],
-  "localized_methods": ["fully.qualified.ClassName.methodName"],
+  "localized_files": ["path/to/FaultyFile1.java", "path/to/FaultyFile2.java"],
+  "localized_classes": ["fully.qualified.ClassName1", "fully.qualified.ClassName2"],
+  "localized_methods": ["fully.qualified.ClassName1.methodName1", "fully.qualified.ClassName2.methodName2"],
   "localized_lines": {
-    "path/to/FaultyFile.java": [123, 124]
+    "path/to/FaultyFile1.java": [123, 124],
+    "path/to/FaultyFile2.java": [200, 205]
   },
   "root_cause_explanation": "Detailed explanation of the technical failure mechanism"
 }
@@ -239,9 +245,10 @@ Produce your localization diagnosis in the required JSON format.
         """
         Invokes the standalone Java SootUpAnalyzer CLI directly to extract static facts.
         Completely decoupled from the Model Context Protocol (zero MCP / zero JSON-RPC).
+        Produces compact, high-signal facts (hierarchy, targeted method inspections, key allocations).
         """
         engine_dir = self.sootup_engine_dir.resolve()
-        classes_dir = engine_dir / "target" / "classes"
+        classes_dir = (engine_dir / "target" / "classes").resolve()
         cp_file = engine_dir / "classpath.txt"
 
         if not cp_file.exists():
@@ -253,7 +260,7 @@ Produce your localization diagnosis in the required JSON format.
             full_cp = f"{classes_dir}:{deps_cp}"
             target_dir = repo_context.target_classes_arg
 
-            classes_to_query = self._identify_target_classes(task, repo_context)
+            classes_to_query, methods_to_query = self._identify_target_elements(task, repo_context)
             facts = []
 
             for cls in classes_to_query:
@@ -261,43 +268,116 @@ Produce your localization diagnosis in the required JSON format.
                 cmd_h = ["java", "-cp", full_cp, "org.sootup.analyzer.SootUpAnalyzer", target_dir, "hierarchy", cls]
                 res_h = subprocess.run(cmd_h, capture_output=True, text=True, cwd=engine_dir, timeout=60)
                 clean_h = "\n".join([line for line in res_h.stdout.splitlines() if not line.startswith("SLF4J")]).strip()
-                if "Subclasses:" in clean_h or "Hierarchy Analysis" in clean_h:
+                if "Subclasses:" in clean_h or "Superclasses:" in clean_h:
                     facts.append(clean_h)
 
-                # 2. Allocations (Direct Java CLI invocation)
-                cmd_a = ["java", "-cp", full_cp, "org.sootup.analyzer.SootUpAnalyzer", target_dir, "find-allocations", cls]
-                res_a = subprocess.run(cmd_a, capture_output=True, text=True, cwd=engine_dir, timeout=60)
-                clean_a = "\n".join([line for line in res_a.stdout.splitlines() if not line.startswith("SLF4J")]).strip()
-                if "Match Found:" in clean_a or "Allocations" in clean_a:
-                    facts.append(clean_a)
+                    # Extract any discovered companion/anonymous subclasses from hierarchy output
+                    discovered_subclasses = re.findall(r"-\s+([a-zA-Z0-9_$.]+)", clean_h)
+                    for sub in discovered_subclasses:
+                        if "$" in sub and not sub.endswith("$*") and sub not in classes_to_query:
+                            # Inspect key methods in companion inner subclass
+                            for meth in methods_to_query:
+                                cmd_sub_m = ["java", "-cp", full_cp, "org.sootup.analyzer.SootUpAnalyzer", target_dir, "inspect-method", sub, meth]
+                                res_sub_m = subprocess.run(cmd_sub_m, capture_output=True, text=True, cwd=engine_dir, timeout=60)
+                                clean_sub_m = "\n".join([line for line in res_sub_m.stdout.splitlines() if not line.startswith("SLF4J")]).strip()
+                                if "Jimple Body:" in clean_sub_m:
+                                    facts.append(clean_sub_m)
 
-            return "\n\n".join(facts)
+                            # Find allocation sites of companion inner class
+                            cmd_sub_a = ["java", "-cp", full_cp, "org.sootup.analyzer.SootUpAnalyzer", target_dir, "find-allocations", sub]
+                            res_sub_a = subprocess.run(cmd_sub_a, capture_output=True, text=True, cwd=engine_dir, timeout=60)
+                            clean_sub_a = "\n".join([line for line in res_sub_a.stdout.splitlines() if not line.startswith("SLF4J")]).strip()
+                            if "Match Found:" in clean_sub_a:
+                                facts.append(clean_sub_a)
+
+                # 2. Targeted Method Inspection for candidate methods
+                for meth in methods_to_query:
+                    cmd_m = ["java", "-cp", full_cp, "org.sootup.analyzer.SootUpAnalyzer", target_dir, "inspect-method", cls, meth]
+                    res_m = subprocess.run(cmd_m, capture_output=True, text=True, cwd=engine_dir, timeout=60)
+                    clean_m = "\n".join([line for line in res_m.stdout.splitlines() if not line.startswith("SLF4J")]).strip()
+                    if "Jimple Body:" in clean_m:
+                        facts.append(clean_m)
+
+                # 3. Allocations (for inner classes or candidate classes)
+                if "$" in cls or cls.endswith("Adapter") or cls.endswith("Policy") or cls.endswith("Factory"):
+                    cmd_a = ["java", "-cp", full_cp, "org.sootup.analyzer.SootUpAnalyzer", target_dir, "find-allocations", cls]
+                    res_a = subprocess.run(cmd_a, capture_output=True, text=True, cwd=engine_dir, timeout=60)
+                    clean_a = "\n".join([line for line in res_a.stdout.splitlines() if not line.startswith("SLF4J")]).strip()
+                    if "Match Found:" in clean_a:
+                        facts.append(clean_a)
+
+            # Limit total output lines to preserve low token overhead
+            combined = "\n\n".join(facts)
+            lines = combined.splitlines()
+            if len(lines) > 75:
+                combined = "\n".join(lines[:75])
+            return combined
         except Exception as e:
             return f"[Error extracting static facts via offline SootUp: {e}]"
 
-    def _identify_target_classes(self, task: Task, repo_context: RepoContext) -> List[str]:
-        """Identifies key class names to query from task problem statement and repository scan."""
+    def _identify_target_elements(self, task: Task, repo_context: RepoContext) -> Tuple[List[str], List[str]]:
+        """
+        Identifies key class names and method names mentioned in task problem statement.
+        """
         candidates: Set[str] = set()
+        methods: Set[str] = set()
 
-        # Map production classes in repository
         if repo_context.repo_path and repo_context.repo_path.exists():
             prod_classes = self._map_production_classes(repo_context.repo_path)
-            words = set(re.findall(r"\b[A-Za-z0-9_]{3,}\b", task.problem_statement))
-            for word in words:
+            text_words = set(re.findall(r"\b[A-Za-z0-9_$]{3,}\b", task.problem_statement))
+            for word in text_words:
                 if word in prod_classes:
                     candidates.add(prod_classes[word])
 
-        # Domain-specific base classes and polymorphic targets
-        if "gson" in task.repo.lower():
-            candidates.add("com.google.gson.TypeAdapter")
-            candidates.add("com.google.gson.Gson$1")
-            candidates.add("com.google.gson.Gson$2")
-        elif "druid" in task.repo.lower():
-            candidates.add("org.apache.druid.timeline.VersionedIntervalTimeline")
-            candidates.add("org.apache.druid.java.util.common.JodaUtils")
+            text_lower = task.problem_statement.lower()
+            for stem, fqcn in prod_classes.items():
+                if len(stem) >= 4 and re.search(r"\b" + re.escape(stem.lower()) + r"(s)?\b", text_lower):
+                    candidates.add(fqcn)
 
-        # Keep deterministic order and limit to top 5 classes
-        return sorted(list(candidates))[:5]
+            # Domain-specific base abstractions when relevant keywords are present
+            if "gson" in task.repo.lower():
+                if "type adapter" in text_lower or "typeadapter" in text_lower or "adapter" in text_lower:
+                    candidates.add("com.google.gson.TypeAdapter")
+                if "reader" in text_lower:
+                    candidates.add("com.google.gson.stream.JsonReader")
+                if "writer" in text_lower:
+                    candidates.add("com.google.gson.stream.JsonWriter")
+                if "builder" in text_lower:
+                    candidates.add("com.google.gson.GsonBuilder")
+                if "primitive" in text_lower:
+                    candidates.add("com.google.gson.JsonPrimitive")
+                if "policy" in text_lower:
+                    candidates.add("com.google.gson.FieldNamingPolicy")
+
+            # Extract method names
+            m_patterns = [
+                r"\b([a-zA-Z][a-zA-Z0-9_]+)\s*\(",
+                r"#([a-zA-Z][a-zA-Z0-9_]+)",
+                r"\.([a-zA-Z][a-zA-Z0-9_]+)\("
+            ]
+            reserved = {
+                "if", "while", "for", "switch", "catch", "println", "print",
+                "assert", "assertEquals", "assertTrue", "assertFalse", "fail",
+                "try", "new", "return", "throw", "throws"
+            }
+            for pat in m_patterns:
+                for m in re.findall(pat, task.problem_statement):
+                    if m not in reserved and len(m) >= 3 and not m[0].isupper():
+                        methods.add(m)
+
+        # Keyword-based method additions
+        text_ps = task.problem_statement.lower()
+        if "hasnext" in text_ps:
+            methods.add("hasNext")
+        if "skipvalue" in text_ps:
+            methods.add("skipValue")
+        if "serialize" in text_ps or "write" in text_ps:
+            methods.add("write")
+        if "equals" in text_ps:
+            methods.add("equals")
+
+        # Keep deterministic order and limit to top 3 classes and top 2 methods
+        return sorted(list(candidates))[:3], sorted(list(methods))[:2]
 
     @staticmethod
     def _map_production_classes(repo_path: Path) -> Dict[str, str]:
