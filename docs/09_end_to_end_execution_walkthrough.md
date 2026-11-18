@@ -536,7 +536,7 @@ sequenceDiagram
     RepoMgr->>RepoMgr: git checkout 796193d0
     RepoMgr-->>CLI: RepoContext (repo_path, target/classes)
 
-    Note over CLI: Conditions A and B complete first. Then Condition C begins.
+    Note over CLI,AgentC: Conditions A and B complete first. Condition C execution begins
     CLI->>AgentC: run(task, repo_context)
     AgentC->>McpClient: enter context manager
     McpClient->>McpServer: spawn subprocess (java -cp ... SootUpMcpServer target/classes)

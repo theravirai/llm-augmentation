@@ -209,17 +209,20 @@ To localize the defect across the codebase, you MUST follow the Systematic Multi
                     else:
                         parsed_diagnosis = self.extract_json_diagnosis(resp.content or "")
                         single_file = len(parsed_diagnosis.get("localized_files", [])) <= 1
-                        if single_file and not self._reflection_asked and iteration < self.max_iterations - 2:
+                        if single_file and not self._reflection_asked and iteration < self.max_iterations:
                             self._reflection_asked = True
                             print(f"  -> [Condition C] Single-file diagnosis detected. Prompting cross-file verification...", flush=True)
                             messages.append({"role": "assistant", "content": resp.content or ""})
                             messages.append({
                                 "role": "user",
                                 "content": (
-                                    "CROSS-FILE VERIFICATION STEP: You have currently identified 1 file. "
-                                    "In Java repositories, defects frequently span multiple non-local files across inheritance trees, companion adapters, and factory classes (for example, companion adapters or subclasses declared in Gson.java or other classes). "
-                                    "Did you verify whether subclasses, factory methods, or parallel adapters in companion files (e.g. Gson.java doubleAdapter/floatAdapter if dealing with numeric adapters, or companion classes revealed in sootup_hierarchy) also exhibit or share this bug? "
-                                    "If other files also contain affected methods, please inspect them and include them in localized_files. If you have verified that NO other files in the repository are affected, you may output your final diagnosis."
+                                    "CROSS-FILE VERIFICATION STEP: You have currently identified 1 file.\n"
+                                    "In Java repositories, defects frequently span multiple non-local files across inheritance trees, companion adapters, and factory classes.\n"
+                                    "CRITICAL CHECK:\n"
+                                    "1. Did you verify whether companion subclasses or factory methods in other files (such as Gson.java declaring doubleAdapter/floatAdapter returning anonymous TypeAdapter subclasses) also contain the same defect (e.g. calling out.value(value) on Number instead of writing the converted primitive)?\n"
+                                    "2. In sootup_hierarchy or source code, check ALL declaring files where companion adapters are defined. If Gson.java or any other class defines factory methods with parallel faulty logic, you MUST include those files in localized_files.\n"
+                                    "3. If other files also contain affected methods or lines, inspect them and include all affected files in localized_files.\n"
+                                    "Please provide your updated diagnosis JSON including all affected files."
                                 )
                             })
                             continue
