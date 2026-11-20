@@ -162,6 +162,39 @@ public class SootUpAnalyzer {
         }
 
         TypeHierarchy th = new ViewTypeHierarchy(view);
+        boolean isInterface = th.isInterface(classType);
+
+        if (isInterface) {
+            sb.append("\nType: Interface\n");
+            sb.append("\nExtended Interfaces:\n");
+            List<ClassType> extended = new ArrayList<>();
+            th.directlyExtendedInterfacesOf(classType).forEach(extended::add);
+            if (extended.isEmpty()) {
+                sb.append(" (None)\n");
+            } else {
+                extended.forEach(ei -> sb.append(" - ").append(ei.getFullyQualifiedName()).append("\n"));
+            }
+
+            sb.append("\nSubinterfaces:\n");
+            List<ClassType> subifaces = new ArrayList<>();
+            th.subinterfacesOf(classType).forEach(subifaces::add);
+            if (subifaces.isEmpty()) {
+                sb.append(" (None)\n");
+            } else {
+                subifaces.forEach(si -> sb.append(" - ").append(si.getFullyQualifiedName()).append("\n"));
+            }
+
+            sb.append("\nImplementing Classes:\n");
+            List<ClassType> implementers = new ArrayList<>();
+            th.implementersOf(classType).forEach(implementers::add);
+            if (implementers.isEmpty()) {
+                sb.append(" (None)\n");
+            } else {
+                appendGroupedSubclasses(sb, implementers);
+            }
+            return sb.toString();
+        }
+
         sb.append("\nSuperclasses:\n");
         th.superClassesOf(classType).forEach(sc -> sb.append(" - ").append(sc.getFullyQualifiedName()).append("\n"));
 
