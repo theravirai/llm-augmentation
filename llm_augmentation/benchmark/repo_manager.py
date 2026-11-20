@@ -154,18 +154,10 @@ class RepoManager:
         # 2. Find compiled target/classes directories
         class_dirs = self.find_target_classes(repo_dir)
 
-        # 3. Check if all src/main/java modules have compiled classes; if not and compile_if_needed is True, compile
-        src_dirs = list(repo_dir.glob("**/src/main/java"))
+        # 3. Check if compiled bytecode classes exist; if none and compile_if_needed is True, compile
         needs_compile = False
-        if compile_if_needed:
-            if not class_dirs:
-                needs_compile = True
-            else:
-                for s in src_dirs:
-                    m_target = s.parent.parent.parent / "target" / "classes"
-                    if not m_target.exists() or not any(m_target.rglob("*.class")):
-                        needs_compile = True
-                        break
+        if compile_if_needed and not class_dirs:
+            needs_compile = True
 
         if needs_compile:
             pom_file = repo_dir / "pom.xml"
