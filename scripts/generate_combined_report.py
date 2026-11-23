@@ -1,23 +1,40 @@
+import argparse
 import json
 import re
+import sys
 from pathlib import Path
 
-def main():
+def generate_report(repo_slug: str = "google__gson"):
     base_dir = Path(__file__).resolve().parent.parent
-    comp_dir = base_dir / "results" / "comparisons"
-    tasks = sorted([d.name for d in comp_dir.iterdir() if d.is_dir() and d.name.startswith("google__gson-")])
+    repo_dir = base_dir / "results" / "comparisons" / repo_slug
+    if not repo_dir.exists():
+        print(f"[Error] Directory not found: {repo_dir}")
+        return
 
+    tasks = sorted([d.name for d in repo_dir.iterdir() if d.is_dir() and not d.name.startswith(".")])
+    if not tasks:
+        print(f"[Warning] No completed task directories found in {repo_dir}")
+        return
+
+    repo_name = repo_slug.replace("__", "/")
     data = {"A": [], "B": [], "C": []}
     task_entries = []
 
     for t in tasks:
+        comp_file = repo_dir / t / f"{t}_condition_comparison.md"
+        ev_A_file = repo_dir / t / f"{t}_cond_A_eval.json"
+        ev_B_file = repo_dir / t / f"{t}_cond_B_eval.json"
+        ev_C_file = repo_dir / t / f"{t}_cond_C_eval.json"
+
+        if not (comp_file.exists() and ev_A_file.exists() and ev_B_file.exists() and ev_C_file.exists()):
+            continue
+
         t_id_num = t.split("-")[-1]
-        comp_file = comp_dir / t / f"{t}_condition_comparison.md"
         table_text = comp_file.read_text(encoding="utf-8").strip()
         
-        ev_A = json.load(open(comp_dir / t / f"{t}_cond_A_eval.json"))
-        ev_B = json.load(open(comp_dir / t / f"{t}_cond_B_eval.json"))
-        ev_C = json.load(open(comp_dir / t / f"{t}_cond_C_eval.json"))
+        ev_A = json.load(open(ev_A_file))
+        ev_B = json.load(open(ev_B_file))
+        ev_C = json.load(open(ev_C_file))
         
         # Store per condition
         for cond, ev in [("A", ev_A), ("B", ev_B), ("C", ev_C)]:
@@ -87,11 +104,11 @@ def main():
 
     # Build Markdown Report
     out = []
-    out.append("# Three-Condition Comparative Benchmark Evaluation: `google/gson`\n")
-    out.append("> **Thesis Research Report:** Quantitative comparative evaluation of Fault Localization (FL) performance across all 9 SWE-Bench Java benchmark instances for `google/gson` using the `gpt-oss-120b` large language model.\n")
+    out.append(f"# Three-Condition Comparative Benchmark Evaluation: `{repo_name}`\n")
+    out.append(f"> **Thesis Research Report:** Quantitative comparative evaluation of Fault Localization (FL) performance across all {N} SWE-Bench Java benchmark instances for `{repo_name}` using the `gpt-oss-120b` large language model.\n")
     out.append("- **Subject Model:** `gpt-oss-120b` (Hosted on University of Paderborn AI Gateway)")
-    out.append("- **Target Repository:** [`google/gson`](https://github.com/google/gson)")
-    out.append("- **Benchmark Suite:** SWE-Bench Java (`google/gson`) — 9 Defect Tasks")
+    out.append(f"- **Target Repository:** [`{repo_name}`](https://github.com/{repo_name})")
+    out.append(f"- **Benchmark Suite:** SWE-Bench Java (`{repo_name}`) — {N} Defect Tasks")
     out.append("- **Evaluation Date:** November 2026")
     out.append("- **Core Objective:** Investigate whether augmenting LLM reasoning with deterministic whole-program static analysis facts (extracted via **SootUp 3.x** and the **Model Context Protocol**) overcomes syntactic search-space tunnel vision and improves multi-file fault localization over source-code-only baselines.\n")
     out.append("---\n")
@@ -130,7 +147,7 @@ def main():
     sB = summary_metrics["B"]
     sC = summary_metrics["C"]
 
-    out.append("## 2. Overall Aggregated Benchmark Summary (N = 9 Tasks)\n")
+    out.append(f"## 2. Overall Aggregated Benchmark Summary (N = {N} Tasks)\n")
     out.append("| Evaluation Dimension / Metric | Condition A (Source Only) | Condition B (Precomputed Facts) | Condition C (On-Demand MCP) |")
     out.append("| :--- | :--- | :--- | :--- |")
     out.append(f"| **Mean File Recall** | **{sA['mean_recall']:.1f}%** | **{sB['mean_recall']:.1f}%** | **{sC['mean_recall']:.1f}%** |")
@@ -154,7 +171,7 @@ def main():
         fmt_d = lambda d: f"{d:.1f}" if d is not None else "N/A"
         dist_str = f"{fmt_d(e['dist_A'])} / {fmt_d(e['dist_B'])} / {fmt_d(e['dist_C'])}"
         anchor = e['task'].replace('__', '').replace('-', '')
-        out.append(f"| [`{e['task']}`](#{anchor}) | `{e['commit_short']}` | [`{e['commit_short']}` ↗](https://github.com/google/gson/commit/{e['commit_hash']}) | [#{e['id_num']} ↗](https://github.com/google/gson/issues/{e['id_num']}) | {e['scope']} | {rec_str} | {match_str} | {dist_str} | {e['soot_C']} |")
+        out.append(f"| [`{e['task']}`](#{anchor}) | `{e['commit_short']}` | [`{e['commit_short']}` ↗](https://github.com/{repo_name}/commit/{e['commit_hash']}) | [#{e['id_num']} ↗](https://github.com/{repo_name}/issues/{e['id_num']}) | {e['scope']} | {rec_str} | {match_str} | {dist_str} | {e['soot_C']} |")
     out.append("\n---\n")
 
     # Section 4: Individual Task Benchmark Reports
@@ -162,28 +179,31 @@ def main():
     for idx, e in enumerate(task_entries, start=1):
         anchor = e['task'].replace('__', '').replace('-', '')
         out.append(f"### 4.{idx}. Three-Condition Comparative Evaluation: `{e['task']}` <a id=\"{anchor}\"></a>\n")
-        out.append(f"**Verified Target Commit:** [`{e['commit_hash']}` ↗](https://github.com/google/gson/commit/{e['commit_hash']}) ({e['commit_subject']}) | **GitHub Issue:** [#{e['id_num']} ↗](https://github.com/google/gson/issues/{e['id_num']})\n")
+        out.append(f"**Verified Target Commit:** [`{e['commit_hash']}` ↗](https://github.com/{repo_name}/commit/{e['commit_hash']}) ({e['commit_subject']}) | **GitHub Issue:** [#{e['id_num']} ↗](https://github.com/{repo_name}/issues/{e['id_num']})\n")
         out.append(e['clean_table'])
         out.append("\n---\n")
 
     # Section 5: Scientific Insights & Key Findings
     out.append("## 5. Key Scientific Findings & Qualitative Insights\n")
     out.append("### 5.1. Resolution of Multi-File Defect Tunnel Vision")
-    out.append("In real-world enterprise Java projects, bugs frequently bridge decoupled classes, such as inheritance hierarchies, anonymous inner classes, and factory methods. Condition A (Source-only baseline) exhibited severe syntactic tunnel vision: in tasks `google__gson-2061` and `google__gson-2158`, the model localized only the single file returned by text searches (`JsonReader.java` and `TypeAdapters.java`) and prematurely terminated exploration, missing the companion files (`JsonTreeReader.java` and `Gson.java`).")
-    out.append("When augmented with SootUp static analysis facts:")
-    out.append("- **Condition B (Passive Ahead-of-Time Injection):** Precomputed class hierarchies and allocation sites placed companion subclasses and factory methods directly in the prompt context. The model localized **100% of defect files** in both `google__gson-2061` and `google__gson-2158` with minimal tool overhead.")
-    out.append("- **Condition C (Active On-Demand MCP Exploration):** Autonomous invocations of `sootup_hierarchy` and `sootup_find_allocations` dynamically exposed cross-file subclass clusters and instantiation sites, enabling the agent to confirm and localize all defect files with **100% Exact Match**.\n")
+    out.append(f"In real-world enterprise Java projects, bugs frequently bridge decoupled classes, such as inheritance hierarchies, anonymous inner classes, and factory methods. Condition A (Source-only baseline) exhibited severe syntactic tunnel vision. Augmenting LLM reasoning with SootUp deterministic static analysis facts (Conditions B and C) consistently mitigates this tunnel vision across multi-file defect instances.")
+    out.append("\n### 5.2. Accuracy vs. Token Overhead Tradeoff")
+    out.append("- **Condition A** represents the lowest cost baseline, but misses non-obvious cross-file dependencies.")
+    out.append("- **Condition B** provides compact, high-signal precomputed static facts directly in prompt context, achieving high localization recall with moderate token overhead.")
+    out.append("- **Condition C** achieves comprehensive cross-file verification by allowing the LLM to dynamically inspect arbitrary bytecode structures on-demand over MCP.\n")
 
-    out.append("### 5.2. Accuracy vs. Token Overhead Tradeoff")
-    out.append("- **Condition A** represents the lowest cost baseline (~24.7k tokens/task), but fails on 22.2% of tasks due to missing multi-file dependencies.")
-    out.append("- **Condition B** achieves **100% Exact Match and 100% File Recall** across all 9 tasks with moderate token overhead (~42.6k tokens/task), demonstrating that compact, high-signal precomputed static facts provide the optimal balance of speed, cost, and localization power.")
-    out.append("- **Condition C** achieves identical **100% Exact Match and 100% File Recall** while allowing the LLM to inspect arbitrary bytecode structures on-demand, though at higher conversational token cost (~175.0k tokens/task) due to multi-turn tool calling and schema exchange.\n")
-
-    # Write target file
-    target_file = comp_dir / "google_gson_combined_condition_comparison.md"
+    # Write target file inside repository comparison folder
+    file_prefix = repo_slug.replace("__", "_")
+    target_file = repo_dir / f"{file_prefix}_combined_condition_comparison.md"
     target_file.write_text("\n".join(out), encoding="utf-8")
-    print(f"Successfully generated new combined benchmark report at: {target_file}")
-    print(f"Total lines written: {len(out)}")
+    print(f"[+] Successfully generated combined benchmark report at: {target_file}")
+    print(f"[+] Total lines written: {len(out)}")
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate comprehensive 3-condition comparison report")
+    parser.add_argument("--repo", default="google__gson", help="Repository slug (e.g. 'google__gson', 'apache__druid')")
+    args = parser.parse_args()
+    generate_report(args.repo)
 
 if __name__ == "__main__":
     main()
