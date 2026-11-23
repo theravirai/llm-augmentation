@@ -121,7 +121,12 @@ def build_parser() -> argparse.ArgumentParser:
     comp_parser.add_argument(
         "-o", "--output-dir",
         default=None,
-        help="Directory to store comparative report (defaults to results/comparisons/{task_id})"
+        help="Directory to store comparative report (defaults to results/comparisons/{repo_slug}/{task_id})"
+    )
+    comp_parser.add_argument(
+        "--target-dir",
+        default=None,
+        help="Optional explicit path to target/classes directory or comma-separated directories"
     )
     comp_parser.add_argument(
         "-r", "--refresh-facts",
@@ -278,8 +283,6 @@ def handle_benchmark(args, config):
 
 def handle_compare(args, config):
     model = args.model or config["defaults"]["model"]
-    output_dir = Path(args.output_dir) if args.output_dir else Path("results/comparisons") / args.task
-    output_dir.mkdir(parents=True, exist_ok=True)
 
     loader = TaskLoader()
     task = loader.get_task(args.task)
@@ -287,12 +290,18 @@ def handle_compare(args, config):
         print(f"[Error] Task '{args.task}' not found.")
         sys.exit(1)
 
+    repo_slug = task.repo.replace("/", "__") if hasattr(task, "repo") else args.task.split("-")[0]
+    output_dir = Path(args.output_dir) if args.output_dir else Path("results/comparisons") / repo_slug / args.task
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     print(f"\n{'='*70}")
     print(f"[*] Three-Condition Comparative Evaluation: {task.instance_id} | Model={model}")
     print(f"{'='*70}\n")
 
     repo_manager = RepoManager()
     repo_context = repo_manager.prepare_repo_for_task(task, checkout=True, compile_if_needed=True)
+    if getattr(args, "target_dir", None):
+        repo_context.target_classes_dirs = [Path(p.strip()).resolve() for p in args.target_dir.split(",") if p.strip()]
 
     refresh = getattr(args, "refresh_facts", False)
     reports: Dict[str, EvaluationReport] = {}

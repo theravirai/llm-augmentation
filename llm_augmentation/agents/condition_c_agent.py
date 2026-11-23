@@ -217,10 +217,10 @@ To localize the defect across the codebase, you MUST follow the Systematic Multi
                                 "role": "user",
                                 "content": (
                                     "CROSS-FILE VERIFICATION STEP: You have currently identified 1 file.\n"
-                                    "In Java repositories, defects frequently span multiple non-local files across inheritance trees, companion adapters, and factory classes.\n"
+                                    "In Java repositories, defects frequently span multiple non-local files across inheritance trees, companion classes, factory methods, and interface implementers.\n"
                                     "CRITICAL CHECK:\n"
-                                    "1. Did you verify whether companion subclasses or factory methods in other files (such as Gson.java declaring doubleAdapter/floatAdapter returning anonymous TypeAdapter subclasses) also contain the same defect (e.g. calling out.value(value) on Number instead of writing the converted primitive)?\n"
-                                    "2. In sootup_hierarchy or source code, check ALL declaring files where companion adapters are defined. If Gson.java or any other class defines factory methods with parallel faulty logic, you MUST include those files in localized_files.\n"
+                                    "1. Did you verify whether companion subclasses, implementers, or factory methods in other files (such as companion classes declaring parallel subclasses, helper adapters, or related dispatch methods) also contain the same defect or require corresponding changes?\n"
+                                    "2. In sootup_hierarchy or source code, check ALL declaring files where companion subclasses, implementers, or factory methods are defined. If companion classes define methods with parallel or dependent faulty logic, you MUST include those files in localized_files.\n"
                                     "3. If other files also contain affected methods or lines, inspect them and include all affected files in localized_files.\n"
                                     "Please provide your updated diagnosis JSON including all affected files."
                                 )
