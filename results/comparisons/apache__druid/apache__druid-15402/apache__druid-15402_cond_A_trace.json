@@ -1,0 +1,212 @@
+{
+  "task_id": "apache__druid-15402",
+  "condition": "A",
+  "model": "gpt-oss-120b",
+  "target_commit": "1df53d6eb30a019fff69a5ff7533ebbd998a438d",
+  "target_commit_subject": "fix physical memory detection on OSX (#15405)",
+  "system_prompt": "You are an expert Java program analysis and defect localization system.\nYou are tasked with identifying the exact root-cause files, classes, methods, and line ranges for the bug described below.\n\nYou have access to repository source code inspection and navigation tools:\n- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').\n- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).\n- search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.\n- read_source_file: Reads line ranges from Java source files in the repository.\n\nYou MUST rely strictly on the provided problem statement and repository source code.\nDo not guess or hallucinate files or classes not present in the project. Always inspect the relevant code first.\n\nYour final response MUST conclude with a JSON block in the following exact format:\n```json\n{\n  \"localized_files\": [\"path/to/FaultyFile.java\"],\n  \"localized_classes\": [\"fully.qualified.ClassName\"],\n  \"localized_methods\": [\"fully.qualified.ClassName.methodName\"],\n  \"localized_lines\": {\n    \"path/to/FaultyFile.java\": [123, 124]\n  },\n  \"root_cause_explanation\": \"Detailed explanation of the technical failure mechanism\"\n}\n```\n",
+  "initial_user_prompt": "### Target Repository: apache/druid\n### Base Commit: 1df53d6eb30a019fff69a5ff7533ebbd998a438d\n\n### Problem Statement:\nDruid 28.0.0 breaks the whole-query cache for groupBy queries with multiple post-aggregate metrics.\nI have been using Druid 28.0.0 and found a new bug.\r\nThe whole-query cache for groupBy queries with multiple post-aggregation metrics is broken.\r\nHowever, if there are no post-aggregation metrics or a single post-aggregation metric, this bug does not seem to occur.\r\n\r\nThis bug is probably caused by a new feature in https://github.com/apache/druid/pull/11595.\r\n\r\n### Affected Version\r\n\r\nDruid 28.0.0\r\n\r\n### Description\r\n\r\nBelow is a description of what happens when the bug occurs.\r\n\r\nSettings changed from default settings\r\n- druid.broker.cache.useResultLevelCache=true\r\n- druid.broker.cache.populateResultLevelCache=true\r\n\r\nQuery\r\n```\r\nSELECT\r\n  \"channel\",\"cityName\"\r\n  ,COUNT(*) AS a1\r\n  ,COUNT(*) * 2 AS a2\r\n  ,COUNT(*) * 3 AS a3\r\nFROM \"wikipedia\"\r\nWHERE TIME_IN_INTERVAL(\"__time\", '2015-09-12T00:00:00.000Z/2015-09-13T00:00:00.000Z')\r\nGROUP BY 1,2\r\nORDER BY 3 DESC\r\nLIMIT 1\r\n```\r\n\r\nNo cache result\r\n| channel | cityName | a1 | a2 | a3 | \r\n| -- | -- | -- | -- | -- |\r\n| #en.wikipedia | null | 10,516 | 21,032 | 31,548 | \r\n\r\nResult level cache result\r\n| channel | cityName | a1 | a2 | a3 | \r\n| -- | -- | -- | -- | -- |\r\n| #en.wikipedia | null | 10,516 | 31,548 | NULL | \r\n\n\n\n### Task Instructions:\nAnalyze the Java source code for the reported issue above.\nUse the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to explore and inspect the relevant classes and methods.\nDetermine the exact root-cause bug locations across the repository.\nRemember that bugs in object-oriented Java may span multiple files and classes.\nProduce your localization diagnosis in the required JSON format.\n",
+  "tool_calls_trace": [
+    {
+      "iteration": 1,
+      "tool": "search_source_code",
+      "arguments": {
+        "query": "post-aggregation",
+        "file_pattern": "*.java",
+        "max_results": 20
+      },
+      "result_snippet": "=== Search Results for 'post-aggregation' (10 matches) ===\nsql/src/main/java/org/apache/druid/sql/calcite/rel/PartialDruidQuery.java:662: // Account for the cost of post-aggregation expressions.\nsql/src/main/java/org/apache/druid/sql/calcite/rel/Projection.java:56: * It is expected that callers will create and use Projection instances in the same context (pre- or post-aggregation).\nsql/src/main/java/org/apache/druid/sql/calcite/rel/Projection.java:282: * Returns true if a post-aggregation \"expre",
+      "duration_seconds": 2.675
+    },
+    {
+      "iteration": 2,
+      "tool": "search_source_code",
+      "arguments": {
+        "query": "ResultLevelCache",
+        "file_pattern": "*.java",
+        "max_results": 20
+      },
+      "result_snippet": "=== Search Results for 'ResultLevelCache' (20 matches) ===\nserver/src/main/java/org/apache/druid/query/ResultLevelCachingQueryRunner.java:90: final String cacheKeyStr = StringUtils.fromUtf8(strategy.computeResultLevelCacheKey(query));\nserver/src/main/java/org/apache/druid/query/ResultLevelCachingQueryRunner.java:91: final byte[] cachedResultSet = fetchResultsFromResultLevelCache(cacheKeyStr);\nserver/src/main/java/org/apache/druid/query/ResultLevelCachingQueryRunner.java:109: ResultLevelCachePopu",
+      "duration_seconds": 1.36
+    },
+    {
+      "iteration": 3,
+      "tool": "search_source_code",
+      "arguments": {
+        "query": "computeResultLevelCacheKey",
+        "file_pattern": "*.java",
+        "max_results": 20
+      },
+      "result_snippet": "=== Search Results for 'computeResultLevelCacheKey' (20 matches) ===\nserver/src/main/java/org/apache/druid/query/ResultLevelCachingQueryRunner.java:90: final String cacheKeyStr = StringUtils.fromUtf8(strategy.computeResultLevelCacheKey(query));\nserver/src/main/java/org/apache/druid/query/ResultLevelCachingQueryRunner.java:173: return cache.get(CacheUtil.computeResultLevelCacheKey(queryCacheKey));\nserver/src/main/java/org/apache/druid/query/ResultLevelCachingQueryRunner.java:227: CacheUtil.comput",
+      "duration_seconds": 1.481
+    },
+    {
+      "iteration": 4,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "processing/src/main/java/org/apache/druid/query/groupby/GroupByQueryQueryToolChest.java",
+        "start_line": 500,
+        "end_line": 580
+      },
+      "result_snippet": "=== File: processing/src/main/java/org/apache/druid/query/groupby/GroupByQueryQueryToolChest.java (Lines 500-580 of 767) ===\n 500 |           }\n 501 |         }\n 502 |     );\n 503 |   }\n 504 | \n 505 |   @Override\n 506 |   public CacheStrategy<ResultRow, Object, GroupByQuery> getCacheStrategy(final GroupByQuery query)\n 507 |   {\n 508 |     return new CacheStrategy<ResultRow, Object, GroupByQuery>()\n 509 |     {\n 510 |       private static final byte CACHE_STRATEGY_VERSION = 0x1;\n 511 |       priv",
+      "duration_seconds": 0.0
+    },
+    {
+      "iteration": 5,
+      "tool": "search_source_code",
+      "arguments": {
+        "query": "getPostAggregatorSpecs",
+        "file_pattern": "*.java",
+        "max_results": 20
+      },
+      "result_snippet": "=== Search Results for 'getPostAggregatorSpecs' (20 matches) ===\nextensions-contrib/moving-average-query/src/main/java/org/apache/druid/query/movingaverage/MovingAverageQueryRunner.java:120: .setPostAggregatorSpecs(maq.getPostAggregatorSpecs())\nextensions-contrib/moving-average-query/src/main/java/org/apache/druid/query/movingaverage/MovingAverageQueryRunner.java:160: maq.getPostAggregatorSpecs(),\nextensions-contrib/moving-average-query/src/main/java/org/apache/druid/query/movingaverage/MovingAv",
+      "duration_seconds": 1.161
+    },
+    {
+      "iteration": 6,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "processing/src/main/java/org/apache/druid/query/groupby/GroupByQuery.java",
+        "start_line": 1,
+        "end_line": 200
+      },
+      "result_snippet": "=== File: processing/src/main/java/org/apache/druid/query/groupby/GroupByQuery.java (Lines 1-200 of 1316) ===\n   1 | /*\n   2 |  * Licensed to the Apache Software Foundation (ASF) under one\n   3 |  * or more contributor license agreements.  See the NOTICE file\n   4 |  * distributed with this work for additional information\n   5 |  * regarding copyright ownership.  The ASF licenses this file\n   6 |  * to you under the Apache License, Version 2.0 (the\n   7 |  * \"License\"); you may not use this file",
+      "duration_seconds": 0.001
+    },
+    {
+      "iteration": 7,
+      "tool": "search_source_code",
+      "arguments": {
+        "query": "class CacheKeyBuilder",
+        "file_pattern": "*.java",
+        "max_results": 20
+      },
+      "result_snippet": "=== Search Results for 'class CacheKeyBuilder' (2 matches) ===\nprocessing/src/main/java/org/apache/druid/query/cache/CacheKeyBuilder.java:55: public class CacheKeyBuilder\nprocessing/src/test/java/org/apache/druid/query/cache/CacheKeyBuilderTest.java:35: public class CacheKeyBuilderTest",
+      "duration_seconds": 2.158
+    },
+    {
+      "iteration": 8,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "processing/src/main/java/org/apache/druid/query/cache/CacheKeyBuilder.java",
+        "start_line": 1,
+        "end_line": 200
+      },
+      "result_snippet": "=== File: processing/src/main/java/org/apache/druid/query/cache/CacheKeyBuilder.java (Lines 1-200 of 320) ===\n   1 | /*\n   2 |  * Licensed to the Apache Software Foundation (ASF) under one\n   3 |  * or more contributor license agreements.  See the NOTICE file\n   4 |  * distributed with this work for additional information\n   5 |  * regarding copyright ownership.  The ASF licenses this file\n   6 |  * to you under the Apache License, Version 2.0 (the\n   7 |  * \"License\"); you may not use this file",
+      "duration_seconds": 0.0
+    },
+    {
+      "iteration": 9,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "processing/src/main/java/org/apache/druid/query/cache/CacheKeyBuilder.java",
+        "start_line": 190,
+        "end_line": 260
+      },
+      "result_snippet": "=== File: processing/src/main/java/org/apache/druid/query/cache/CacheKeyBuilder.java (Lines 190-260 of 320) ===\n 190 |   }\n 191 | \n 192 |   public CacheKeyBuilder appendString(@Nullable String input)\n 193 |   {\n 194 |     appendItem(STRING_KEY, StringUtils.toUtf8WithNullToEmpty(input));\n 195 |     return this;\n 196 |   }\n 197 | \n 198 |   /**\n 199 |    * Add a collection of strings to the cache key.\n 200 |    * Strings in the collection are concatenated with a separator of '0xFF',\n 201 |    * and",
+      "duration_seconds": 0.0
+    },
+    {
+      "iteration": 10,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "processing/src/main/java/org/apache/druid/query/cache/CacheKeyBuilder.java",
+        "start_line": 260,
+        "end_line": 340
+      },
+      "result_snippet": "=== File: processing/src/main/java/org/apache/druid/query/cache/CacheKeyBuilder.java (Lines 260-320 of 320) ===\n 260 |   }\n 261 | \n 262 |   public CacheKeyBuilder appendFloatArray(float[] input)\n 263 |   {\n 264 |     appendItem(FLOAT_ARRAY_KEY, floatArrayToByteArray(input));\n 265 |     return this;\n 266 |   }\n 267 | \n 268 |   public CacheKeyBuilder appendCacheable(@Nullable Cacheable input)\n 269 |   {\n 270 |     appendItem(CACHEABLE_KEY, cacheableToByteArray(input));\n 271 |     return this;\n 272",
+      "duration_seconds": 0.0
+    },
+    {
+      "iteration": 11,
+      "tool": "search_source_code",
+      "arguments": {
+        "query": "prepareForCache",
+        "file_pattern": "GroupByQueryQueryToolChest.java"
+      },
+      "result_snippet": "=== Search Results for 'prepareForCache' (1 matches) ===\nprocessing/src/main/java/org/apache/druid/query/groupby/GroupByQueryQueryToolChest.java:567: public Function<ResultRow, Object> prepareForCache(boolean isResultLevelCache)",
+      "duration_seconds": 0.58
+    },
+    {
+      "iteration": 12,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "processing/src/main/java/org/apache/druid/query/groupby/GroupByQueryQueryToolChest.java",
+        "start_line": 560,
+        "end_line": 660
+      },
+      "result_snippet": "=== File: processing/src/main/java/org/apache/druid/query/groupby/GroupByQueryQueryToolChest.java (Lines 560-660 of 767) ===\n 560 |       @Override\n 561 |       public TypeReference<Object> getCacheObjectClazz()\n 562 |       {\n 563 |         return OBJECT_TYPE_REFERENCE;\n 564 |       }\n 565 | \n 566 |       @Override\n 567 |       public Function<ResultRow, Object> prepareForCache(boolean isResultLevelCache)\n 568 |       {\n 569 |         final boolean resultRowHasTimestamp = query.getResultRowHasT",
+      "duration_seconds": 0.001
+    },
+    {
+      "iteration": 13,
+      "tool": "search_source_code",
+      "arguments": {
+        "query": "getResultRowPostAggregatorStart",
+        "file_pattern": "*.java",
+        "max_results": 20
+      },
+      "result_snippet": "=== Search Results for 'getResultRowPostAggregatorStart' (8 matches) ===\nprocessing/src/main/java/org/apache/druid/query/groupby/GroupByQuery.java:365: return getResultRowPostAggregatorStart();\nprocessing/src/main/java/org/apache/druid/query/groupby/GroupByQuery.java:424: public int getResultRowPostAggregatorStart()\nprocessing/src/main/java/org/apache/druid/query/groupby/GroupingEngine.java:361: for (int i = 0; i < query.getResultRowPostAggregatorStart(); i++) {\nprocessing/src/main/java/org/apac",
+      "duration_seconds": 1.869
+    },
+    {
+      "iteration": 14,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "processing/src/main/java/org/apache/druid/query/groupby/GroupByQuery.java",
+        "start_line": 400,
+        "end_line": 460
+      },
+      "result_snippet": "=== File: processing/src/main/java/org/apache/druid/query/groupby/GroupByQuery.java (Lines 400-460 of 1316) ===\n 400 |   public boolean getResultRowHasTimestamp()\n 401 |   {\n 402 |     return universalTimestamp == null;\n 403 |   }\n 404 | \n 405 |   /**\n 406 |    * Returns the position of the first dimension in ResultRows for this query.\n 407 |    */\n 408 |   public int getResultRowDimensionStart()\n 409 |   {\n 410 |     return getResultRowHasTimestamp() ? 1 : 0;\n 411 |   }\n 412 | \n 413 |   /**\n 41",
+      "duration_seconds": 0.0
+    },
+    {
+      "iteration": 15,
+      "tool": "read_source_file",
+      "arguments": {
+        "file_path": "processing/src/main/java/org/apache/druid/query/groupby/GroupByQueryQueryToolChest.java",
+        "start_line": 640,
+        "end_line": 660
+      },
+      "result_snippet": "=== File: processing/src/main/java/org/apache/druid/query/groupby/GroupByQueryQueryToolChest.java (Lines 640-660 of 767) ===\n 640 | \n 641 |               dimPos++;\n 642 |             }\n 643 | \n 644 |             CacheStrategy.fetchAggregatorsFromCache(\n 645 |                 aggs,\n 646 |                 results,\n 647 |                 isResultLevelCache,\n 648 |                 (aggName, aggPosition, aggValueObject) -> {\n 649 |                   resultRow.set(aggregatorStart + aggPosition, aggVal",
+      "duration_seconds": 0.0
+    }
+  ],
+  "raw_output": "Thus bug is missing postPos increment.\n\nProvide JSON with file path, class fully qualified name: org.apache.druid.query.groupby.GroupByQueryQueryToolChest, method: pullFromCache (or the lambda inside). The method is pullFromCache, but the bug is inside that method's inner lambda. We'll reference method name.\n\nLine range 653-658.\n\nNow craft final answer.\n{\n  \"localized_files\": [\"processing/src/main/java/org/apache/druid/query/groupby/GroupByQueryQueryToolChest.java\"],\n  \"localized_classes\": [\"org.apache.druid.query.groupby.GroupByQueryQueryToolChest\"],\n  \"localized_methods\": [\"org.apache.druid.query.groupby.GroupByQueryQueryToolChest.pullFromCache\"],\n  \"localized_lines\": {\n    \"processing/src/main/java/org/apache/druid/query/groupby/GroupByQueryQueryToolChest.java\": [653, 658]\n  },\n  \"root_cause_explanation\": \"When reading a cached GroupBy result, the `pullFromCache` method reconstructs the `ResultRow` from the cached list. The loop that writes post\u2011aggregator values to the result row never increments the `postPos` index:\\n```java\\nIterator<PostAggregator> postItr = query.getPostAggregatorSpecs().iterator();\\nint postPos = 0;\\nwhile (postItr.hasNext() && results.hasNext()) {\\n    resultRow.set(postAggregatorStart + postPos, results.next());\\n    // missing: postPos++;\\n}\\n```\\nAs a consequence, every post\u2011aggregator value is written to the same slot (the first post\u2011aggregator position), overwriting previous values. The final cached row contains only the last post\u2011aggregator value (e.g., `a3`) in the first post\u2011aggregator column (`a2`), while subsequent post\u2011aggregator columns remain `null`. This corrupts the whole\u2011query cache for GroupBy queries that have more than one post\u2011aggregation metric, leading to the observed incorrect results. The fix is to increment `postPos` inside the loop (or use the iterator index) so each post\u2011aggregator is stored in its correct position.\"\n}",
+  "evaluation": {
+    "task_id": "apache__druid-15402",
+    "condition": "A",
+    "model": "gpt-oss-120b",
+    "target_commit": "1df53d6eb30a019fff69a5ff7533ebbd998a438d",
+    "target_commit_subject": "fix physical memory detection on OSX (#15405)",
+    "system_prompt": "You are an expert Java program analysis and defect localization system.\nYou are tasked with identifying the exact root-cause files, classes, methods, and line ranges for the bug described below.\n\nYou have access to repository source code inspection and navigation tools:\n- find_files: Finds files matching a glob pattern (e.g. '*TypeAdapter*.java', '*Gson*.java').\n- list_directory: Lists directory layout and packages (e.g. 'gson/src/main/java' or empty for repository root).\n- search_source_code: Searches the codebase for keywords, classes, method names, or regex patterns.\n- read_source_file: Reads line ranges from Java source files in the repository.\n\nYou MUST rely strictly on the provided problem statement and repository source code.\nDo not guess or hallucinate files or classes not present in the project. Always inspect the relevant code first.\n\nYour final response MUST conclude with a JSON block in the following exact format:\n```json\n{\n  \"localized_files\": [\"path/to/FaultyFile.java\"],\n  \"localized_classes\": [\"fully.qualified.ClassName\"],\n  \"localized_methods\": [\"fully.qualified.ClassName.methodName\"],\n  \"localized_lines\": {\n    \"path/to/FaultyFile.java\": [123, 124]\n  },\n  \"root_cause_explanation\": \"Detailed explanation of the technical failure mechanism\"\n}\n```\n",
+    "initial_user_prompt": "### Target Repository: apache/druid\n### Base Commit: 1df53d6eb30a019fff69a5ff7533ebbd998a438d\n\n### Problem Statement:\nDruid 28.0.0 breaks the whole-query cache for groupBy queries with multiple post-aggregate metrics.\nI have been using Druid 28.0.0 and found a new bug.\r\nThe whole-query cache for groupBy queries with multiple post-aggregation metrics is broken.\r\nHowever, if there are no post-aggregation metrics or a single post-aggregation metric, this bug does not seem to occur.\r\n\r\nThis bug is probably caused by a new feature in https://github.com/apache/druid/pull/11595.\r\n\r\n### Affected Version\r\n\r\nDruid 28.0.0\r\n\r\n### Description\r\n\r\nBelow is a description of what happens when the bug occurs.\r\n\r\nSettings changed from default settings\r\n- druid.broker.cache.useResultLevelCache=true\r\n- druid.broker.cache.populateResultLevelCache=true\r\n\r\nQuery\r\n```\r\nSELECT\r\n  \"channel\",\"cityName\"\r\n  ,COUNT(*) AS a1\r\n  ,COUNT(*) * 2 AS a2\r\n  ,COUNT(*) * 3 AS a3\r\nFROM \"wikipedia\"\r\nWHERE TIME_IN_INTERVAL(\"__time\", '2015-09-12T00:00:00.000Z/2015-09-13T00:00:00.000Z')\r\nGROUP BY 1,2\r\nORDER BY 3 DESC\r\nLIMIT 1\r\n```\r\n\r\nNo cache result\r\n| channel | cityName | a1 | a2 | a3 | \r\n| -- | -- | -- | -- | -- |\r\n| #en.wikipedia | null | 10,516 | 21,032 | 31,548 | \r\n\r\nResult level cache result\r\n| channel | cityName | a1 | a2 | a3 | \r\n| -- | -- | -- | -- | -- |\r\n| #en.wikipedia | null | 10,516 | 31,548 | NULL | \r\n\n\n\n### Task Instructions:\nAnalyze the Java source code for the reported issue above.\nUse the repository navigation and inspection tools (find_files, list_directory, search_source_code, read_source_file) to explore and inspect the relevant classes and methods.\nDetermine the exact root-cause bug locations across the repository.\nRemember that bugs in object-oriented Java may span multiple files and classes.\nProduce your localization diagnosis in the required JSON format.\n",
+    "rq1_accuracy": {
+      "file_recall": 1.0,
+      "file_precision": 1.0,
+      "file_f1": 1.0,
+      "exact_file_match": true,
+      "method_hit": false,
+      "min_line_distance": 0.0,
+      "exact_line_hit": true,
+      "fault_window_localized": true,
+      "patch_resolved": true,
+      "matched_files": [
+        "processing/src/main/java/org/apache/druid/query/groupby/GroupByQueryQueryToolChest.java"
+      ],
+      "missed_files": [],
+      "spurious_files": [],
+      "matched_methods": []
+    },
+    "rq2_cost": {
+      "tool_calls_count": 15,
+      "source_tool_calls": 15,
+      "mcp_tool_calls": 0,
+      "prompt_tokens": 133355,
+      "completion_tokens": 2281,
+      "total_tokens": 135636,
+      "latency_seconds": 31.02,
+      "compilation_status": "OK"
+    }
+  }
+}
