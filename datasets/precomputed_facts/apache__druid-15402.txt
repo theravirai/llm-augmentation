@@ -1,0 +1,10 @@
+=== CLASS HIERARCHY FACT ===
+Target: com.sun.org.apache.xml.internal.serializer.Version
+
+Superclasses:
+ - java.lang.Object
+
+Subclasses:
+ (None)
+
+Implemented Interfaces:

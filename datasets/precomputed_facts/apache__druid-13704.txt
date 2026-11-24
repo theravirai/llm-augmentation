@@ -1,0 +1,10 @@
+=== CLASS HIERARCHY FACT ===
+Target: org.apache.druid.java.util.http.client.Request
+
+Superclasses:
+ - java.lang.Object
+
+Subclasses:
+ (None)
+
+Implemented Interfaces:

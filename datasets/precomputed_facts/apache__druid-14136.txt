@@ -1,0 +1,38 @@
+=== CLASS HIERARCHY FACT ===
+Target: org.apache.druid.java.util.common.Intervals
+
+Superclasses:
+ - java.lang.Object
+
+Subclasses:
+ (None)
+
+NOTE: 'org.apache.druid.java.util.common.Intervals' is a utility container with no direct subclasses.
+Subclasses of base class 'sun.jvm.hotspot.utilities.Interval':
+ (Found 0 subclasses across 0 declaring files/containers):
+
+Implemented Interfaces:
+
+=== CLASS HIERARCHY FACT ===
+Target: org.apache.druid.java.util.common.granularity.Granularity
+
+Superclasses:
+ - java.lang.Object
+
+Subclasses:
+ (Found 4 subclasses across 4 declaring files/containers):
+
+ [Declared in file/class: org.apache.druid.java.util.common.granularity.AllGranularity] (1 subclasses):
+   - org.apache.druid.java.util.common.granularity.AllGranularity
+
+ [Declared in file/class: org.apache.druid.java.util.common.granularity.DurationGranularity] (1 subclasses):
+   - org.apache.druid.java.util.common.granularity.DurationGranularity
+
+ [Declared in file/class: org.apache.druid.java.util.common.granularity.NoneGranularity] (1 subclasses):
+   - org.apache.druid.java.util.common.granularity.NoneGranularity
+
+ [Declared in file/class: org.apache.druid.java.util.common.granularity.PeriodGranularity] (1 subclasses):
+   - org.apache.druid.java.util.common.granularity.PeriodGranularity
+
+Implemented Interfaces:
+ - org.apache.druid.java.util.common.Cacheable

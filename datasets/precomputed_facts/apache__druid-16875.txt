@@ -1,0 +1,10 @@
+=== CLASS HIERARCHY FACT ===
+Target: jdk.javadoc.internal.tool.Main
+
+Superclasses:
+ - java.lang.Object
+
+Subclasses:
+ (None)
+
+Implemented Interfaces:
